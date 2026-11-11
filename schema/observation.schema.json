@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Sandhiya0305/open-architecture-intelligence/schemas/observation.schema.json",
+  "title": "Architecture observation",
+  "description": "A provenance-preserving observation extracted from a permitted public source.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["observation_id", "source", "observed_at", "category", "claim", "evidence_status"],
+  "properties": {
+    "observation_id": {"type": "string", "minLength": 1},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "source_type"],
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "source_type": {"type": "string", "enum": ["api", "rss", "article", "benchmark", "repository", "discussion"]},
+        "title": {"type": "string"},
+        "published_at": {"type": ["string", "null"], "format": "date-time"},
+        "retrieved_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "observed_at": {"type": "string", "format": "date-time"},
+    "category": {"type": "string", "minLength": 1},
+    "ecosystem": {"type": ["string", "null"], "enum": ["nodejs", "python", "java", "php", null]},
+    "claim": {"type": "string", "minLength": 1},
+    "claim_type": {"type": "string", "enum": ["architecture_description", "adoption_signal", "performance_claim", "limitation", "release", "discussion", "other"]},
+    "evidence_status": {"type": "string", "enum": ["unverified", "corroborated", "methodology_reviewed", "rejected"]},
+    "evidence_notes": {"type": "string"},
+    "benchmark": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["workload", "environment", "methodology", "results"],
+      "properties": {
+        "workload": {"type": "string"},
+        "environment": {"type": "string"},
+        "hardware": {"type": "string"},
+        "runtime_versions": {"type": "string"},
+        "methodology": {"type": "string"},
+        "results": {"type": "string"},
+        "measured_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  }
+}
