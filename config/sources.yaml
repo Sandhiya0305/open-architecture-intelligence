@@ -1,0 +1,29 @@
+version: 1
+policy:
+  user_agent: "OpenArchitectureIntelligence/0.1 (+https://github.com/Sandhiya0305/open-architecture-intelligence)"
+  respect_robots_txt: true
+  respect_rate_limits: true
+  store_source_urls: true
+  republish_full_source_text: false
+sources:
+  - id: github
+    type: api
+    enabled: true
+    purpose: "Discover public repositories, releases, and engineering discussions"
+    endpoint: "https://api.github.com"
+    authentication: "optional_token"
+  - id: hacker_news
+    type: api
+    enabled: true
+    purpose: "Discover community discussions and links"
+    endpoint: "https://hacker-news.firebaseio.com/v0"
+    authentication: "none"
+  - id: rss
+    type: feed
+    enabled: false
+    purpose: "Curated engineering and architecture publications"
+    feeds: []
+notes:
+  - "Only public, permitted sources are in scope."
+  - "Disabled sources require an explicit reviewed feed list before activation."
+  - "Mention counts are interest signals, not performance measurements."
