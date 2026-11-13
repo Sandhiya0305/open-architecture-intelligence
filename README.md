@@ -35,7 +35,7 @@ Set GITHUB_TOKEN in your environment to use an authenticated GitHub API quota. N
 
 Hacker News full-text discovery uses the public Algolia Hacker News Search API at https://hn.algolia.com/api/v1, not the Firebase item API. Story points and comment counts are stored only as discussion metadata.
 
-RSS/Atom discovery uses configured feeds from InfoQ Architecture & Design, AWS Architecture Blog, and Martin Fowler. Only article titles, short feed summaries for classification, canonical links, authors, and publication dates are processed; full article text is not stored or republished.
+RSS/Atom discovery uses configured feeds from InfoQ Architecture & Design, AWS Architecture Blog, and Martin Fowler. Article titles, bounded feed summaries (up to 4,000 characters), canonical links, authors, and publication dates are processed; full article text is not stored or republished.
 
 ## Trend reports
 
@@ -67,9 +67,20 @@ Outputs are stored separately under reports/evidence/ as JSONL assessments plus 
 
 The optional evidence_details object in the observation schema holds structured benchmark details when reviewers or future extractors provide them. Empty or missing fields remain incomplete.
 
+## Claim extraction and review queue
+
+Generate conservative candidate claims from captured source excerpts:
+
+    oai claims review-queue
+    oai claims review-queue --as-of 2026-11-13
+
+Outputs are written under reports/claims/ as JSONL, JSON, and Markdown. The deterministic extractor looks for explicit sentences describing decisions, benefits, or limitations. Each candidate retains its observation ID, source URL, title, architecture labels, and extraction method. Exact normalized repeats are flagged for duplicate review; a small set of opposing outcome phrases can be flagged as possible conflicts.
+
+These are review candidates, not verified findings. The extractor does not infer claims from stars, points, titles alone, or missing source text. Older observations without captured excerpts will produce no claims. Reviewers must open the source, check context and methodology, and decide whether a claim belongs in the knowledge base. No automatic approval or publication occurs.
+
 ## Scheduled execution
 
-The daily-discovery workflow runs the GitHub, Hacker News, and RSS/Atom discovery pipeline every day at 00:30 UTC (06:00 India Standard Time), then generates daily and rolling weekly reports and evidence assessments. It can also be started manually from the repository Actions tab. New dated JSONL observations and reports are committed to this repository. GitHub-hosted runners mean your personal computer does not need to stay on.
+The daily-discovery workflow runs the GitHub, Hacker News, and RSS/Atom discovery pipeline every day at 00:30 UTC (06:00 India Standard Time), then generates daily and rolling weekly reports, evidence assessments, and a claim review queue. It can also be started manually from the repository Actions tab. New dated JSONL observations and reports are committed to this repository. GitHub-hosted runners mean your personal computer does not need to stay on.
 
 GitHub Actions schedules can be delayed and may be disabled for inactive repositories. Use the manual workflow trigger when needed and check the Actions tab for run results.
 
@@ -80,6 +91,7 @@ GitHub Actions schedules can be delayed and may be disabled for inactive reposit
 - data/observations/YYYY-MM-DD.jsonl: append-only daily observation snapshots.
 - reports/daily/ and reports/weekly/: generated Markdown and JSON trend snapshots.
 - reports/evidence/: per-observation evidence assessments and summary reports.
+- reports/claims/: source-linked candidate claims awaiting human review.
 - schema/: validated observation contract, including optional structured benchmark details.
 - tests/: mocked API and deterministic unit tests.
 

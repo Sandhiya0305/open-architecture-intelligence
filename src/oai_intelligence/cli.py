@@ -8,6 +8,7 @@ from pathlib import Path
 
 from oai_intelligence import __version__
 from oai_intelligence.assess import generate_evidence_assessment
+from oai_intelligence.claims import generate_claim_review_queue
 from oai_intelligence.collectors.github import GitHubCollectorError
 from oai_intelligence.collectors.hacker_news import HackerNewsCollectorError
 from oai_intelligence.collectors.rss import RSSCollectorError
@@ -49,6 +50,12 @@ def build_parser() -> argparse.ArgumentParser:
     trends.add_argument("--data-dir", type=Path, default=None)
     trends.add_argument("--output-dir", type=Path, default=None)
 
+    claims = commands.add_parser("claims", help="Extract candidate claims for human review")
+    claims.add_argument("claims_command", choices=["review-queue"])
+    claims.add_argument("--as-of", type=date.fromisoformat, default=None)
+    claims.add_argument("--data-dir", type=Path, default=None)
+    claims.add_argument("--output-dir", type=Path, default=None)
+
     assess = commands.add_parser("assess", help="Assess evidence without changing observations")
     assess_commands = assess.add_subparsers(dest="assess_command")
     evidence = assess_commands.add_parser("evidence", help="Generate per-observation assessments")
@@ -89,6 +96,11 @@ def main(argv: list[str] | None = None) -> int:
                 as_of=args.as_of,
                 data_dir=args.data_dir,
                 output_dir=args.output_dir,
+            )
+            print(json.dumps(result, indent=2))
+        elif args.command == "claims" and args.claims_command == "review-queue":
+            result = generate_claim_review_queue(
+                data_dir=args.data_dir, output_dir=args.output_dir, as_of=args.as_of
             )
             print(json.dumps(result, indent=2))
         elif args.command == "assess" and args.assess_command == "evidence":

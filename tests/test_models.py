@@ -10,7 +10,7 @@ def test_repository_is_classified_and_validated() -> None:
     repository = {
         "name": "clean-architecture-python",
         "full_name": "sample/clean-architecture-python",
-        "description": "A clean architecture example",
+        "description": "A clean architecture example with explicit source context.",
         "topics": ["clean-architecture"],
         "html_url": "https://github.com/sample/clean-architecture-python",
         "stargazers_count": 12,
@@ -32,6 +32,7 @@ def test_repository_is_classified_and_validated() -> None:
     assert observation["claim_type"] == "discovery_candidate"
     assert observation["metrics"]["stars"] == 12
     assert observation["metrics"]["license_spdx_id"] == "MIT"
+    assert observation["source"]["content_excerpt"] == repository["description"]
 
 
 def test_same_repository_same_day_has_stable_observation_id() -> None:
