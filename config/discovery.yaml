@@ -1,0 +1,34 @@
+version: 1
+ecosystems:
+  nodejs:
+    github_language: JavaScript
+    query_terms:
+      - microservices
+      - '"clean architecture"'
+      - '"event-driven"'
+      - '"modular monolith"'
+      - '"layered architecture"'
+  python:
+    github_language: Python
+    query_terms:
+      - microservices
+      - '"clean architecture"'
+      - '"event-driven"'
+      - '"modular monolith"'
+      - '"layered architecture"'
+  java:
+    github_language: Java
+    query_terms:
+      - microservices
+      - '"clean architecture"'
+      - '"event-driven"'
+      - '"modular monolith"'
+      - '"layered architecture"'
+  php:
+    github_language: PHP
+    query_terms:
+      - microservices
+      - '"clean architecture"'
+      - '"event-driven"'
+      - '"modular monolith"'
+      - '"layered architecture"'

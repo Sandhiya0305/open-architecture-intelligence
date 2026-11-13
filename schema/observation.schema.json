@@ -1,46 +1,56 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Sandhiya0305/open-architecture-intelligence/blob/main/schema/observation.schema.json",
-  "title": "Architecture observation",
-  "description": "A provenance-preserving observation extracted from a permitted public source.",
+  "title": "Architecture discovery observation",
+  "description": "A dated, provenance-preserving record collected from a permitted public source.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["observation_id", "source", "observed_at", "category", "claim", "evidence_status"],
+  "required": [
+    "observation_id", "source_record_id", "source", "observed_at",
+    "category", "architecture_matches", "ecosystem", "claim",
+    "claim_type", "evidence_status", "evidence_notes", "tags", "metrics"
+  ],
   "properties": {
     "observation_id": {"type": "string", "minLength": 1},
+    "source_record_id": {"type": "string", "minLength": 1},
     "source": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["url", "source_type"],
+      "required": ["source_id", "source_type", "url", "title", "published_at", "retrieved_at"],
       "properties": {
+        "source_id": {"type": "string", "minLength": 1},
+        "source_type": {"type": "string", "enum": ["repository", "release", "discussion", "article", "benchmark"]},
         "url": {"type": "string", "format": "uri"},
-        "source_type": {"type": "string", "enum": ["api", "rss", "article", "benchmark", "repository", "discussion"]},
-        "title": {"type": "string"},
+        "title": {"type": "string", "minLength": 1},
         "published_at": {"type": ["string", "null"], "format": "date-time"},
-        "retrieved_at": {"type": ["string", "null"], "format": "date-time"}
+        "retrieved_at": {"type": "string", "format": "date-time"}
       }
     },
     "observed_at": {"type": "string", "format": "date-time"},
     "category": {"type": "string", "minLength": 1},
-    "ecosystem": {"type": ["string", "null"], "enum": ["nodejs", "python", "java", "php", null]},
+    "architecture_matches": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "ecosystem": {"type": "string", "enum": ["nodejs", "python", "java", "php"]},
     "claim": {"type": "string", "minLength": 1},
-    "claim_type": {"type": "string", "enum": ["architecture_description", "adoption_signal", "performance_claim", "limitation", "release", "discussion", "other"]},
+    "claim_type": {"type": "string", "enum": ["discovery_candidate", "adoption_signal", "performance_claim", "architecture_description", "limitation", "release", "discussion", "other"]},
     "evidence_status": {"type": "string", "enum": ["unverified", "corroborated", "methodology_reviewed", "rejected"]},
     "evidence_notes": {"type": "string"},
-    "benchmark": {
-      "type": ["object", "null"],
+    "tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "metrics": {
+      "type": "object",
       "additionalProperties": false,
-      "required": ["workload", "environment", "methodology", "results"],
+      "required": ["stars", "forks", "open_issues", "primary_language", "created_at", "updated_at", "pushed_at", "default_branch", "archived", "license_spdx_id"],
       "properties": {
-        "workload": {"type": "string", "minLength": 1},
-        "environment": {"type": "string", "minLength": 1},
-        "hardware": {"type": "string"},
-        "runtime_versions": {"type": "string"},
-        "methodology": {"type": "string", "minLength": 1},
-        "results": {"type": "string", "minLength": 1},
-        "measured_at": {"type": ["string", "null"], "format": "date-time"}
+        "stars": {"type": "integer", "minimum": 0},
+        "forks": {"type": "integer", "minimum": 0},
+        "open_issues": {"type": "integer", "minimum": 0},
+        "primary_language": {"type": ["string", "null"]},
+        "created_at": {"type": ["string", "null"], "format": "date-time"},
+        "updated_at": {"type": ["string", "null"], "format": "date-time"},
+        "pushed_at": {"type": ["string", "null"], "format": "date-time"},
+        "default_branch": {"type": ["string", "null"]},
+        "archived": {"type": "boolean"},
+        "license_spdx_id": {"type": ["string", "null"]}
       }
-    },
-    "tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+    }
   }
 }

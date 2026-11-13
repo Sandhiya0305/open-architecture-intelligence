@@ -1,58 +1,47 @@
 # Open Architecture Intelligence
 
-An evidence-first, open-source research engine that discovers software architecture developments, evaluates claims, tracks signals over time, and proposes reviewed updates to the companion [Open Architecture Knowledge](https://github.com/Sandhiya0305/open-architecture-knowledge) repository.
+An evidence-first research engine that discovers software architecture signals, preserves source provenance, evaluates claims, tracks history, and proposes reviewed updates to the companion [Open Architecture Knowledge](https://github.com/Sandhiya0305/open-architecture-knowledge) repository.
 
-## Scope
+## Initial scope
 
-Initial ecosystems: **Node.js, Python, Java, and PHP**.
+- Ecosystems: Node.js, Python, Java, and PHP.
+- Architecture taxonomy: Layered Architecture, Modular Monolith, Microservices, Clean Architecture, and Event-Driven Architecture.
+- Initial sources: GitHub repository metadata, Hacker News discussions, and curated RSS feeds.
 
-Initial architecture taxonomy:
-- Layered Architecture
-- Modular Monolith
-- Microservices
-- Clean Architecture
-- Event-Driven Architecture
+## Evidence principles
 
-## Operating principles
+- Repository mentions and popularity metrics are discovery signals, not proof of architecture adoption or performance.
+- Keep stars, forks, releases, and discussion activity separate from benchmark measurements.
+- Performance claims require workload, environment, hardware, versions, methodology, results, measurement date, and source.
+- Missing methodology means unverified; never invent comparisons.
+- Preserve source URLs and dates. Do not republish full third-party articles.
+- Generated knowledge updates require human review through pull requests; no automatic merge.
 
-1. Evidence before conclusions: preserve source URLs, publication dates, and claim provenance.
-2. Popularity is not performance: adoption and mention counts are separate from measured performance.
-3. No invented benchmarks: performance claims require workload, environment, versions, methodology, and results.
-4. AI assists; validation decides: deterministic code validates schemas and calculations.
-5. Human review is mandatory: generated knowledge is proposed through pull requests, never silently merged.
-6. Respect source terms, robots directives, licenses, and rate limits. Prefer metadata and links over republishing source text.
+## Current implementation
 
-## Current capabilities
-
-- Load and validate the source registry and architecture taxonomy.
-- Validate observation records against the JSON Schema contract, including date/time and URI formats.
-- Run locally through the oai command-line interface.
-- Exercise the package, validators, and example record in continuous integration.
-
-Discovery collectors, extraction, evidence corroboration, historical storage, trend analysis, and pull-request publishing remain future phases. No performance ranking is claimed at this stage.
-
-## Repository map
-
-- src/oai_intelligence/: Python engine and CLI.
-- config/: source registry and architecture taxonomy.
-- schema/: machine-readable observation contract.
-- examples/observations/: synthetic validation fixture (not factual research).
-- tests/: automated tests.
-- .github/workflows/: continuous integration.
-
-## Development
-
-Requires Python 3.11 or newer.
+The first working vertical slice discovers GitHub repositories matching architecture-related terms across the four initial ecosystems. It classifies repository metadata as a discovery candidate, validates each record, and appends it to a dated JSONL history file.
 
     python -m venv .venv
     # Windows: .venv\Scripts\activate
-    # macOS/Linux: source .venv/bin/activate
     python -m pip install -e ".[dev]"
-    pytest
+
     oai status
     oai validate-config
-    oai validate-observation examples/observations/example.json
+    oai discover github --limit 10
+    oai discover github --limit 5 --dry-run
 
-## Companion repository
+Set GITHUB_TOKEN in your environment to use an authenticated GitHub API quota. Never commit tokens or secrets.
 
-The curated knowledge base lives at [open-architecture-knowledge](https://github.com/Sandhiya0305/open-architecture-knowledge).
+## Data layout
+
+- config/: source registry, architecture taxonomy, and discovery queries.
+- src/oai_intelligence/collectors/: source-specific collectors.
+- data/observations/YYYY-MM-DD.jsonl: append-only daily observation snapshots.
+- schema/: validated observation contract.
+- tests/: mocked API and deterministic unit tests.
+
+The JSONL history is the durable record. Local SQLite indexing and richer trend analysis will be added in later phases.
+
+## Development status
+
+GitHub repository discovery is the first implemented source. Hacker News, RSS, release-level collection, corroboration, trend analysis, and knowledge-repository pull-request publishing are subsequent milestones.

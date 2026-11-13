@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from oai_intelligence.config import ConfigError, load_yaml, validate_sources
+from oai_intelligence.config import (
+    ConfigError,
+    load_yaml,
+    validate_discovery,
+    validate_sources,
+)
 from oai_intelligence.validation import validate_project_configs
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,3 +40,14 @@ def test_yaml_root_must_be_a_mapping(tmp_path: Path) -> None:
     path.write_text("- item\n", encoding="utf-8")
     with pytest.raises(ConfigError, match="YAML mapping"):
         load_yaml(path)
+
+
+def test_discovery_terms_must_not_be_empty() -> None:
+    config = {
+        "version": 1,
+        "ecosystems": {
+            "python": {"github_language": "Python", "query_terms": []}
+        },
+    }
+    with pytest.raises(ConfigError, match="query_terms"):
+        validate_discovery(config)

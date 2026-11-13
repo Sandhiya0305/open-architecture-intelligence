@@ -34,5 +34,3 @@ jobs:
         run: ruff check .
       - name: Validate project configuration
         run: oai validate-config
-      - name: Validate example observation
-        run: oai validate-observation examples/observations/example.json

@@ -18,5 +18,5 @@ architectures:
     description: "Separates domain policy from infrastructure through inward-facing dependencies."
   - id: event-driven
     name: Event-Driven Architecture
-    aliases: ["EDA"]
+    aliases: ["EDA", "event-driven"]
     description: "Coordinates components through the production and consumption of events."
