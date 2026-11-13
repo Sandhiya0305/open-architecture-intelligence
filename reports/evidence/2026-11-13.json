@@ -1,10 +1,10 @@
 {
   "as_of": "2026-11-13",
-  "assessment_count": 33,
+  "assessment_count": 74,
   "benchmark_incomplete": 0,
   "benchmark_ready_for_human_review": 0,
   "dispositions": {
-    "unverified": 33
+    "unverified": 74
   },
   "independent_source_matches": 0,
   "note": "Assessments are review guidance. They do not alter original observations or promote evidence status."
