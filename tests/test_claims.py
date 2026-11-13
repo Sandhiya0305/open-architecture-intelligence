@@ -44,6 +44,7 @@ def test_duplicate_claims_are_flagged_but_not_verified():
 
     assert len(queue) == 2
     assert all(item["duplicate_observation_ids"] for item in queue)
+    assert queue[0]["claim_id"] != queue[1]["claim_id"]
     assert all(item["evidence_status"] == "unverified" for item in queue)
 
 
@@ -65,3 +66,15 @@ def test_review_queue_writes_json_jsonl_and_markdown(tmp_path: Path):
     assert Path(result["json"]).exists()
     assert Path(result["jsonl"]).exists()
     assert "unverified" in Path(result["markdown"]).read_text(encoding="utf-8")
+
+
+def test_splits_multiple_sentences_and_extracts_only_relevant_claims():
+    item = observation(excerpt=(
+        "The team chose microservices for independent deployment. "
+        "This improved release speed across teams.\n"
+        "The weather was sunny yesterday."
+    ))
+    claims = extract_claim_candidates(item)
+    assert len(claims) == 2
+    assert "decision" in claims[0]["claim_kinds"]
+    assert "benefit" in claims[1]["claim_kinds"]

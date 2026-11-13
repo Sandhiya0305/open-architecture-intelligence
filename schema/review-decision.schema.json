@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Sandhiya0305/open-architecture-intelligence/blob/main/schema/review-decision.schema.json",
+  "title": "Human claim review decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["review_id", "claim_id", "decision", "reviewer", "note", "reviewed_at"],
+  "properties": {
+    "review_id": {"type": "string", "format": "uuid"},
+    "claim_id": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "decision": {"enum": ["approve", "reject", "needs-evidence"]},
+    "reviewer": {"type": "string", "minLength": 1},
+    "note": {"type": "string", "minLength": 1},
+    "reviewed_at": {"type": "string", "format": "date-time"}
+  }
+}

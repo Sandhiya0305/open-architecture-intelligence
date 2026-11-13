@@ -78,9 +78,33 @@ Outputs are written under reports/claims/ as JSONL, JSON, and Markdown. The dete
 
 These are review candidates, not verified findings. The extractor does not infer claims from stars, points, titles alone, or missing source text. Older observations without captured excerpts will produce no claims. Reviewers must open the source, check context and methodology, and decide whether a claim belongs in the knowledge base. No automatic approval or publication occurs.
 
+## Human review and knowledge publishing
+
+The review process is deliberately separate from extraction. First generate the claim queue and inspect its Markdown/JSON output. Copy a claim ID from the report and record a decision:
+
+    oai claims review <CLAIM_ID> --decision approve --reviewer "Your Name" --note "Checked the original source and context."
+    oai claims review <CLAIM_ID> --decision needs-evidence --reviewer "Your Name" --note "The source does not describe the workload."
+    oai claims review <CLAIM_ID> --decision reject --reviewer "Your Name" --note "The sentence is not a technical architecture claim."
+
+Decisions are appended to data/reviews/claim-decisions.jsonl. A later decision supersedes the earlier decision for preparation, while the history remains intact. Commit and push this file so scheduled GitHub Actions runs can see the decisions. Do not put secrets or private information in reviewer notes; the repository is public.
+
+Prepare a knowledge candidate bundle containing only currently approved claims:
+
+    oai claims prepare-knowledge --as-of 2026-11-13
+
+The generated Markdown remains explicitly **UNVERIFIED**. Editorial approval only means a human considers the candidate relevant and source-linked; it does not establish truth, causality, reproducibility, or performance. Rejected and needs-evidence claims are excluded.
+
+To open a draft pull request in the companion knowledge repository, make sure its local clone is clean and authenticated for Git push. Set OAI_GITHUB_TOKEN to a fine-grained GitHub token with **Contents: Read and write** and **Pull requests: Read and write** access limited to `Sandhiya0305/open-architecture-knowledge`, then run:
+
+    oai publish knowledge --bundle reports/knowledge-candidates/2026-11-13.md --repo-path ../open-architecture-knowledge --as-of 2026-11-13
+
+The publisher checks the exact repository remote, refuses dirty working trees and overwrites, creates a dedicated branch, pushes the candidate file under evidence/candidates/, and opens a **draft** pull request. It never writes directly to the knowledge repository's default branch or merges a pull request. The Git credential manager must also be authenticated for the push; the API token is read from the environment and is never written to source files.
+
+For an optional GitHub Actions hand-off, add a repository secret named `OAI_KNOWLEDGE_TOKEN` with the same narrowly scoped permissions, and a repository variable named `OAI_ENABLE_KNOWLEDGE_PR` set to `true`. Then use **Actions -> Daily Architecture Discovery -> Run workflow**. Only manual runs attempt the cross-repository draft PR; scheduled runs never publish to the knowledge repository. If there are no approved candidates, the PR step is skipped. Without both settings, discovery and report generation continue normally.
+
 ## Scheduled execution
 
-The daily-discovery workflow runs the GitHub, Hacker News, and RSS/Atom discovery pipeline every day at 00:30 UTC (06:00 India Standard Time), then generates daily and rolling weekly reports, evidence assessments, and a claim review queue. It can also be started manually from the repository Actions tab. New dated JSONL observations and reports are committed to this repository. GitHub-hosted runners mean your personal computer does not need to stay on.
+The daily-discovery workflow runs the GitHub, Hacker News, and RSS/Atom discovery pipeline every day at 00:30 UTC (06:00 India Standard Time), then generates daily and rolling weekly reports, evidence assessments, a claim review queue, and a knowledge-candidate bundle based only on previously recorded human approvals. It can also be started manually from the repository Actions tab. New dated JSONL observations and reports are committed to this repository. GitHub-hosted runners mean your personal computer does not need to stay on.
 
 GitHub Actions schedules can be delayed and may be disabled for inactive repositories. Use the manual workflow trigger when needed and check the Actions tab for run results.
 
@@ -92,7 +116,9 @@ GitHub Actions schedules can be delayed and may be disabled for inactive reposit
 - reports/daily/ and reports/weekly/: generated Markdown and JSON trend snapshots.
 - reports/evidence/: per-observation evidence assessments and summary reports.
 - reports/claims/: source-linked candidate claims awaiting human review.
-- schema/: validated observation contract, including optional structured benchmark details.
+- reports/knowledge-candidates/: Markdown bundles containing only human-approved but still unverified candidates.
+- data/reviews/: append-only human review decisions; never store secrets or personal data here.
+- schema/: validated observation, claim-candidate, and human-review contracts.
 - tests/: mocked API and deterministic unit tests.
 
 The JSONL history is the durable record. Evidence assessments are separate review aids, not edits to historical observations. Local SQLite indexing, stronger claim-level corroboration, and knowledge-repository pull-request publishing remain future milestones.
