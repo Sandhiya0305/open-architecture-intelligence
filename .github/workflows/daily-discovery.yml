@@ -41,14 +41,20 @@ jobs:
         run: oai discover hacker-news --limit "$DISCOVERY_LIMIT"
       - name: Discover RSS and Atom articles
         run: oai discover rss --limit "$DISCOVERY_LIMIT"
-      - name: Commit new observations
+      - name: Generate daily trend report
+        run: oai report trends --period daily
+      - name: Generate rolling weekly trend report
+        run: oai report trends --period weekly
+      - name: Assess observation evidence
+        run: oai assess evidence
+      - name: Commit observations, reports, and assessments
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/observations/
+          git add data/observations/ reports/
           if git diff --cached --quiet; then
-            echo "No new observations to commit."
+            echo "No new observations or reports to commit."
           else
-            git commit -m "data: update architecture observations"
+            git commit -m "data: update observations and intelligence reports"
             git push
           fi

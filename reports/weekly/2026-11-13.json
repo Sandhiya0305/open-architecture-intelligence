@@ -1,0 +1,42 @@
+{
+  "current": {
+    "architecture_mentions": {
+      "clean-architecture": 4,
+      "event-driven": 8,
+      "microservices": 14,
+      "modular-monolith": 4
+    },
+    "by_ecosystem": {
+      "cross_ecosystem": 6,
+      "java": 7,
+      "nodejs": 3,
+      "php": 6,
+      "python": 6
+    },
+    "by_evidence_status": {
+      "unverified": 28
+    },
+    "by_source": {
+      "github": 22,
+      "hacker_news": 6
+    },
+    "by_source_type": {
+      "discussion": 6,
+      "repository": 22
+    },
+    "observation_count": 28
+  },
+  "period": "weekly",
+  "period_end_exclusive": "2026-11-14T00:00:00+00:00",
+  "period_start": "2026-11-07T00:00:00+00:00",
+  "previous": {
+    "architecture_mentions": {},
+    "by_ecosystem": {},
+    "by_evidence_status": {},
+    "by_source": {},
+    "by_source_type": {},
+    "observation_count": 0
+  },
+  "previous_period_end_exclusive": "2026-11-07T00:00:00+00:00",
+  "previous_period_start": "2026-10-31T00:00:00+00:00"
+}

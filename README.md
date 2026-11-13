@@ -37,9 +37,39 @@ Hacker News full-text discovery uses the public Algolia Hacker News Search API a
 
 RSS/Atom discovery uses configured feeds from InfoQ Architecture & Design, AWS Architecture Blog, and Martin Fowler. Only article titles, short feed summaries for classification, canonical links, authors, and publication dates are processed; full article text is not stored or republished.
 
+## Trend reports
+
+Generate deterministic daily and rolling seven-day reports from the saved observation history:
+
+    oai report trends --period daily
+    oai report trends --period weekly
+    oai report trends --period daily --as-of 2026-11-13
+
+Each run writes a Markdown report and a JSON data file under reports/daily/ or reports/weekly/. Reports compare the selected window with the preceding window of equal length and summarize architecture mentions, sources, ecosystems, and evidence statuses.
+
+These counts describe the collected discovery sample. They are not estimates of market adoption, architecture quality, or performance. A performance conclusion requires independently reviewed benchmark evidence and methodology; this report generator does not infer one.
+
+## Evidence assessment
+
+Generate conservative per-observation assessments:
+
+    oai assess evidence
+    oai assess evidence --as-of 2026-11-13
+
+Outputs are stored separately under reports/evidence/ as JSONL assessments plus JSON and Markdown summaries. The assessment engine:
+
+- Keeps original observation records unchanged.
+- Separates source-activity metadata (stars, forks, discussion points/comments) from technical evidence.
+- Flags exact claim matches on different publisher domains as corroboration leads, not proof.
+- Checks whether performance claims include workload, environment, hardware, software versions, methodology, results, measurement date, and source URL.
+- Marks complete benchmark records as ready for human review only; it does not validate experimental quality or reproducibility.
+- Never automatically upgrades evidence status, approves claims, or publishes knowledge updates.
+
+The optional evidence_details object in the observation schema holds structured benchmark details when reviewers or future extractors provide them. Empty or missing fields remain incomplete.
+
 ## Scheduled execution
 
-The daily-discovery workflow runs the combined GitHub, Hacker News, and RSS/Atom discovery pipeline every day at 00:30 UTC (06:00 India Standard Time). It can also be started manually from the repository Actions tab. New dated JSONL observations are committed to this repository. GitHub-hosted runners mean your personal computer does not need to stay on.
+The daily-discovery workflow runs the GitHub, Hacker News, and RSS/Atom discovery pipeline every day at 00:30 UTC (06:00 India Standard Time), then generates daily and rolling weekly reports and evidence assessments. It can also be started manually from the repository Actions tab. New dated JSONL observations and reports are committed to this repository. GitHub-hosted runners mean your personal computer does not need to stay on.
 
 GitHub Actions schedules can be delayed and may be disabled for inactive repositories. Use the manual workflow trigger when needed and check the Actions tab for run results.
 
@@ -48,7 +78,9 @@ GitHub Actions schedules can be delayed and may be disabled for inactive reposit
 - config/: source registry, architecture taxonomy, and discovery queries.
 - src/oai_intelligence/collectors/: source-specific collectors.
 - data/observations/YYYY-MM-DD.jsonl: append-only daily observation snapshots.
-- schema/: validated observation contract.
+- reports/daily/ and reports/weekly/: generated Markdown and JSON trend snapshots.
+- reports/evidence/: per-observation evidence assessments and summary reports.
+- schema/: validated observation contract, including optional structured benchmark details.
 - tests/: mocked API and deterministic unit tests.
 
-The JSONL history is the durable record. Local SQLite indexing, corroboration, trend analysis, and knowledge-repository pull-request publishing remain future milestones.
+The JSONL history is the durable record. Evidence assessments are separate review aids, not edits to historical observations. Local SQLite indexing, stronger claim-level corroboration, and knowledge-repository pull-request publishing remain future milestones.

@@ -34,6 +34,21 @@
     "claim_type": {"type": "string", "enum": ["discovery_candidate", "adoption_signal", "performance_claim", "architecture_description", "limitation", "release", "discussion", "other"]},
     "evidence_status": {"type": "string", "enum": ["unverified", "corroborated", "methodology_reviewed", "rejected"]},
     "evidence_notes": {"type": "string"},
+    "evidence_details": {
+      "type": "object",
+      "description": "Optional structured details for claims that have been reviewed. Presence does not imply verification.",
+      "additionalProperties": false,
+      "properties": {
+        "workload": {"type": ["string", "object", "array"]},
+        "environment": {"type": ["string", "object", "array"]},
+        "hardware": {"type": ["string", "object", "array"]},
+        "software_versions": {"type": ["string", "object", "array"]},
+        "methodology": {"type": ["string", "object", "array"]},
+        "results": {"type": ["string", "object", "array"]},
+        "measurement_date": {"type": "string", "format": "date"},
+        "source_url": {"type": "string", "format": "uri"}
+      }
+    },
     "tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
     "metrics": {
       "type": "object",
