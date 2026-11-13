@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import yaml
 
@@ -64,6 +65,33 @@ def validate_sources(data: dict[str, Any]) -> None:
                 bool(source.get("endpoint") or source.get("feeds")),
                 f"sources.yaml: enabled source {source_id} needs endpoint or feeds.",
             )
+        if source.get("type") == "feed":
+            feeds = source.get("feeds", [])
+            _require(isinstance(feeds, list), f"sources.yaml: {source_id}.feeds must be a list.")
+            feed_ids: set[str] = set()
+            for feed in feeds:
+                _require(
+                    isinstance(feed, dict), f"sources.yaml: {source_id} feed must be a mapping."
+                )
+                feed_id = feed.get("id")
+                _require(
+                    isinstance(feed_id, str) and bool(feed_id.strip()),
+                    f"sources.yaml: {source_id} feed needs a non-empty id.",
+                )
+                _require(
+                    feed_id not in feed_ids,
+                    f"sources.yaml: {source_id} has duplicate feed id {feed_id!r}.",
+                )
+                feed_ids.add(feed_id)
+                parsed = urlsplit(str(feed.get("url") or ""))
+                _require(
+                    parsed.scheme == "https" and bool(parsed.netloc),
+                    f"sources.yaml: feed {feed_id} must have an HTTPS URL.",
+                )
+                _require(
+                    isinstance(feed.get("publisher"), str) and bool(feed["publisher"].strip()),
+                    f"sources.yaml: feed {feed_id} needs a publisher name.",
+                )
 
 
 def validate_discovery(data: dict[str, Any]) -> None:

@@ -8,10 +8,12 @@ from pathlib import Path
 from oai_intelligence import __version__
 from oai_intelligence.collectors.github import GitHubCollectorError
 from oai_intelligence.collectors.hacker_news import HackerNewsCollectorError
+from oai_intelligence.collectors.rss import RSSCollectorError
 from oai_intelligence.pipeline import (
     run_all_discovery,
     run_github_discovery,
     run_hacker_news_discovery,
+    run_rss_discovery,
 )
 from oai_intelligence.validation import validate_project_configs
 
@@ -28,15 +30,20 @@ def build_parser() -> argparse.ArgumentParser:
 
     discover = commands.add_parser("discover", help="Collect architecture discovery candidates")
     discover.add_argument(
-        "source", choices=["github", "hacker-news", "all"], help="Source to collect from"
+        "source",
+        choices=["github", "hacker-news", "rss", "all"],
+        help="Source to collect from",
     )
-    discover.add_argument("--limit", type=int, default=10, help="Maximum results per query")
+    discover.add_argument("--limit", type=int, default=10, help="Maximum results per query/feed")
     discover.add_argument(
-        "--output-dir", type=Path, default=None,
+        "--output-dir",
+        type=Path,
+        default=None,
         help="Observation directory (default: data/observations)",
     )
     discover.add_argument(
-        "--dry-run", action="store_true",
+        "--dry-run",
+        action="store_true",
         help="Fetch and validate records without writing them",
     )
     return parser
@@ -47,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "status":
             print(f"Open Architecture Intelligence {__version__}")
-            print("Discovery: GitHub repositories and Hacker News discussions available.")
+            print("Discovery: GitHub repositories, Hacker News discussions, and RSS/Atom articles.")
             print("Scheduled execution: configured through GitHub Actions.")
         elif args.command == "validate-config":
             validate_project_configs()
@@ -58,6 +65,7 @@ def main(argv: list[str] | None = None) -> int:
             runners = {
                 "github": run_github_discovery,
                 "hacker-news": run_hacker_news_discovery,
+                "rss": run_rss_discovery,
                 "all": run_all_discovery,
             }
             result = runners[args.source](
@@ -67,7 +75,11 @@ def main(argv: list[str] | None = None) -> int:
         else:
             build_parser().print_help()
     except (
-        OSError, ValueError, GitHubCollectorError, HackerNewsCollectorError
+        OSError,
+        ValueError,
+        GitHubCollectorError,
+        HackerNewsCollectorError,
+        RSSCollectorError,
     ) as exc:
         print(f"OAI failed: {exc}", file=sys.stderr)
         return 1

@@ -45,9 +45,56 @@ def test_yaml_root_must_be_a_mapping(tmp_path: Path) -> None:
 def test_discovery_terms_must_not_be_empty() -> None:
     config = {
         "version": 1,
-        "ecosystems": {
-            "python": {"github_language": "Python", "query_terms": []}
-        },
+        "ecosystems": {"python": {"github_language": "Python", "query_terms": []}},
     }
     with pytest.raises(ConfigError, match="query_terms"):
         validate_discovery(config)
+
+
+def test_feed_source_requires_https_urls() -> None:
+    config = {
+        "version": 1,
+        "policy": {
+            "respect_robots_txt": True,
+            "respect_rate_limits": True,
+            "store_source_urls": True,
+            "republish_full_source_text": False,
+        },
+        "sources": [
+            {
+                "id": "rss",
+                "type": "feed",
+                "enabled": True,
+                "feeds": [
+                    {"id": "unsafe", "publisher": "Example", "url": "http://example.com/feed"}
+                ],
+            }
+        ],
+    }
+    with pytest.raises(ConfigError, match="HTTPS URL"):
+        validate_sources(config)
+
+
+def test_duplicate_feed_ids_are_rejected() -> None:
+    config = {
+        "version": 1,
+        "policy": {
+            "respect_robots_txt": True,
+            "respect_rate_limits": True,
+            "store_source_urls": True,
+            "republish_full_source_text": False,
+        },
+        "sources": [
+            {
+                "id": "rss",
+                "type": "feed",
+                "enabled": True,
+                "feeds": [
+                    {"id": "same", "publisher": "One", "url": "https://one.example/feed"},
+                    {"id": "same", "publisher": "Two", "url": "https://two.example/feed"},
+                ],
+            }
+        ],
+    }
+    with pytest.raises(ConfigError, match="duplicate feed id"):
+        validate_sources(config)

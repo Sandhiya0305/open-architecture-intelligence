@@ -6,7 +6,7 @@ An evidence-first research engine that discovers software architecture signals, 
 
 - Ecosystems: Node.js, Python, Java, and PHP.
 - Architecture taxonomy: Layered Architecture, Modular Monolith, Microservices, Clean Architecture, and Event-Driven Architecture.
-- Sources: GitHub repository metadata and Hacker News discussions. Curated RSS is planned but remains disabled until a reviewed feed list is configured.
+- Sources: GitHub repository metadata, Hacker News discussions, and curated RSS/Atom engineering publications.
 
 ## Evidence principles
 
@@ -27,6 +27,7 @@ An evidence-first research engine that discovers software architecture signals, 
     oai validate-config
     oai discover github --limit 10
     oai discover hacker-news --limit 10
+    oai discover rss --limit 10
     oai discover all --limit 10
     oai discover all --limit 5 --dry-run
 
@@ -34,9 +35,11 @@ Set GITHUB_TOKEN in your environment to use an authenticated GitHub API quota. N
 
 Hacker News full-text discovery uses the public Algolia Hacker News Search API at https://hn.algolia.com/api/v1, not the Firebase item API. Story points and comment counts are stored only as discussion metadata.
 
+RSS/Atom discovery uses configured feeds from InfoQ Architecture & Design, AWS Architecture Blog, and Martin Fowler. Only article titles, short feed summaries for classification, canonical links, authors, and publication dates are processed; full article text is not stored or republished.
+
 ## Scheduled execution
 
-The daily-discovery workflow runs the combined GitHub and Hacker News discovery pipeline every day at 00:30 UTC (06:00 India Standard Time). It can also be started manually from the repository Actions tab. New dated JSONL observations are committed to this repository. GitHub-hosted runners mean your personal computer does not need to stay on.
+The daily-discovery workflow runs the combined GitHub, Hacker News, and RSS/Atom discovery pipeline every day at 00:30 UTC (06:00 India Standard Time). It can also be started manually from the repository Actions tab. New dated JSONL observations are committed to this repository. GitHub-hosted runners mean your personal computer does not need to stay on.
 
 GitHub Actions schedules can be delayed and may be disabled for inactive repositories. Use the manual workflow trigger when needed and check the Actions tab for run results.
 
@@ -48,4 +51,4 @@ GitHub Actions schedules can be delayed and may be disabled for inactive reposit
 - schema/: validated observation contract.
 - tests/: mocked API and deterministic unit tests.
 
-The JSONL history is the durable record. Local SQLite indexing, RSS discovery, trend analysis, and knowledge-repository pull-request publishing remain future milestones.
+The JSONL history is the durable record. Local SQLite indexing, corroboration, trend analysis, and knowledge-repository pull-request publishing remain future milestones.

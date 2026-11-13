@@ -21,9 +21,7 @@ def _matches(text: str, term: str) -> bool:
     return f" {needle} " in f" {haystack} "
 
 
-def classify_architectures(
-    repository: dict[str, Any], taxonomy: dict[str, Any]
-) -> list[str]:
+def classify_architectures(repository: dict[str, Any], taxonomy: dict[str, Any]) -> list[str]:
     searchable = " ".join(
         [
             str(repository.get("name", "")),
@@ -116,9 +114,7 @@ def discussion_observation(
     if not object_id or not title:
         raise ValueError("Hacker News stories must include objectID and title.")
 
-    searchable = " ".join(
-        [title, str(story.get("story_text") or ""), str(story.get("url") or "")]
-    )
+    searchable = " ".join([title, str(story.get("story_text") or ""), str(story.get("url") or "")])
     matches = classify_architectures(
         {"name": title, "description": searchable, "topics": []}, taxonomy
     )
@@ -160,6 +156,60 @@ def discussion_observation(
             "author": story.get("author"),
             "story_url": story.get("url"),
         },
+    }
+    validate_observation(observation)
+    return observation
+
+
+def article_observation(
+    article: dict[str, Any],
+    taxonomy: dict[str, Any],
+    observed_at: datetime | None = None,
+) -> dict[str, Any]:
+    observed_at = observed_at or utc_now()
+    timestamp = _timestamp(observed_at)
+    article_url = str(article.get("url") or "")
+    title = str(article.get("title") or "").strip()
+    feed_id = str(article.get("feed_id") or "")
+    entry_id = str(article.get("entry_id") or article_url)
+    if not article_url.startswith("https://") or not title or not feed_id:
+        raise ValueError("RSS articles require a title, feed_id, and HTTPS article URL.")
+
+    searchable = " ".join([title, str(article.get("summary") or "")])
+    matches = classify_architectures(
+        {"name": title, "description": searchable, "topics": []}, taxonomy
+    )
+    identity = f"rss:{feed_id}:{entry_id.casefold()}:{observed_at.date().isoformat()}"
+    observation_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    publisher = str(article.get("publisher") or article.get("feed_title") or feed_id)
+
+    observation = {
+        "observation_id": observation_id,
+        "source_record_id": f"rss:{feed_id}:{entry_id}",
+        "source": {
+            "source_id": "rss",
+            "source_type": "article",
+            "url": article_url,
+            "title": title,
+            "published_at": article.get("published_at"),
+            "retrieved_at": timestamp,
+        },
+        "observed_at": timestamp,
+        "category": matches[0] if matches else "unclassified",
+        "architecture_matches": matches,
+        "ecosystem": "cross_ecosystem",
+        "claim": (
+            f"An article from {publisher} matched configured architecture discovery terms. "
+            "This is a research candidate, not independently verified evidence."
+        ),
+        "claim_type": "discovery_candidate",
+        "evidence_status": "unverified",
+        "evidence_notes": (
+            "Classification uses article title and feed summary only. "
+            "The full article has not been reviewed or corroborated."
+        ),
+        "tags": ["rss", "article", publisher, *matches],
+        "metrics": {},
     }
     validate_observation(observation)
     return observation

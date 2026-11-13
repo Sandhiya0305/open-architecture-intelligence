@@ -21,11 +21,20 @@ sources:
     provider: "Algolia Hacker News Search API"
   - id: rss
     type: feed
-    enabled: false
-    purpose: "Curated engineering and architecture publications"
-    feeds: []
+    enabled: true
+    purpose: "Discover architecture articles from curated engineering publications"
+    feeds:
+      - id: infoq_architecture
+        publisher: "InfoQ Architecture & Design"
+        url: "https://feed.infoq.com/architecture-design/"
+      - id: aws_architecture
+        publisher: "AWS Architecture Blog"
+        url: "https://aws.amazon.com/blogs/architecture/feed/"
+      - id: martin_fowler
+        publisher: "Martin Fowler"
+        url: "https://martinfowler.com/feed.atom"
 notes:
   - "Only public, permitted sources are in scope."
-  - "Disabled sources require an explicit reviewed feed list before activation."
+  - "RSS feeds are used for discovery metadata and short summaries; full articles are not republished."
   - "Mention counts are interest signals, not performance measurements."
   - "Hacker News full-text search uses the Algolia HN Search API; Firebase is not a full-text search endpoint."
