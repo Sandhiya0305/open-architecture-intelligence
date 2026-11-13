@@ -1,1 +1,1 @@
-"""External source collectors."""
+"""Source-specific discovery collectors."""

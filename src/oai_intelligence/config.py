@@ -56,7 +56,7 @@ def validate_sources(data: dict[str, Any]) -> None:
             f"sources.yaml: {source_id} needs an enabled boolean.",
         )
         _require(
-            source.get("type") in {"api", "feed"},
+            source.get("type") in {"api", "indexed_search_api", "feed"},
             f"sources.yaml: {source_id} has an unsupported type.",
         )
         if source.get("enabled"):

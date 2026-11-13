@@ -29,7 +29,7 @@
     "observed_at": {"type": "string", "format": "date-time"},
     "category": {"type": "string", "minLength": 1},
     "architecture_matches": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
-    "ecosystem": {"type": "string", "enum": ["nodejs", "python", "java", "php"]},
+    "ecosystem": {"type": "string", "enum": ["nodejs", "python", "java", "php", "cross_ecosystem"]},
     "claim": {"type": "string", "minLength": 1},
     "claim_type": {"type": "string", "enum": ["discovery_candidate", "adoption_signal", "performance_claim", "architecture_description", "limitation", "release", "discussion", "other"]},
     "evidence_status": {"type": "string", "enum": ["unverified", "corroborated", "methodology_reviewed", "rejected"]},
@@ -38,7 +38,6 @@
     "metrics": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["stars", "forks", "open_issues", "primary_language", "created_at", "updated_at", "pushed_at", "default_branch", "archived", "license_spdx_id"],
       "properties": {
         "stars": {"type": "integer", "minimum": 0},
         "forks": {"type": "integer", "minimum": 0},
@@ -49,7 +48,11 @@
         "pushed_at": {"type": ["string", "null"], "format": "date-time"},
         "default_branch": {"type": ["string", "null"]},
         "archived": {"type": "boolean"},
-        "license_spdx_id": {"type": ["string", "null"]}
+        "license_spdx_id": {"type": ["string", "null"]},
+        "points": {"type": ["integer", "null"], "minimum": 0},
+        "comment_count": {"type": ["integer", "null"], "minimum": 0},
+        "author": {"type": ["string", "null"]},
+        "story_url": {"type": ["string", "null"], "format": "uri"}
       }
     }
   }

@@ -13,11 +13,12 @@ sources:
     endpoint: "https://api.github.com"
     authentication: "optional_token"
   - id: hacker_news
-    type: api
+    type: indexed_search_api
     enabled: true
     purpose: "Discover community discussions and links"
-    endpoint: "https://hacker-news.firebaseio.com/v0"
+    endpoint: "https://hn.algolia.com/api/v1"
     authentication: "none"
+    provider: "Algolia Hacker News Search API"
   - id: rss
     type: feed
     enabled: false
@@ -27,3 +28,4 @@ notes:
   - "Only public, permitted sources are in scope."
   - "Disabled sources require an explicit reviewed feed list before activation."
   - "Mention counts are interest signals, not performance measurements."
+  - "Hacker News full-text search uses the Algolia HN Search API; Firebase is not a full-text search endpoint."

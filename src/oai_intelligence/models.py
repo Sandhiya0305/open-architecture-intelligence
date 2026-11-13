@@ -40,6 +40,10 @@ def classify_architectures(
     return matches
 
 
+def _timestamp(value: datetime) -> str:
+    return value.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
 def repository_observation(
     repository: dict[str, Any],
     ecosystem: str,
@@ -47,9 +51,7 @@ def repository_observation(
     observed_at: datetime | None = None,
 ) -> dict[str, Any]:
     observed_at = observed_at or utc_now()
-    timestamp = observed_at.astimezone(UTC).isoformat(timespec="seconds").replace(
-        "+00:00", "Z"
-    )
+    timestamp = _timestamp(observed_at)
     full_name = repository["full_name"]
     source_url = repository["html_url"]
     matches = classify_architectures(repository, taxonomy)
@@ -96,6 +98,67 @@ def repository_observation(
             "default_branch": repository.get("default_branch"),
             "archived": repository.get("archived", False),
             "license_spdx_id": license_info.get("spdx_id"),
+        },
+    }
+    validate_observation(observation)
+    return observation
+
+
+def discussion_observation(
+    story: dict[str, Any],
+    taxonomy: dict[str, Any],
+    observed_at: datetime | None = None,
+) -> dict[str, Any]:
+    observed_at = observed_at or utc_now()
+    timestamp = _timestamp(observed_at)
+    object_id = str(story.get("objectID") or "")
+    title = str(story.get("title") or "").strip()
+    if not object_id or not title:
+        raise ValueError("Hacker News stories must include objectID and title.")
+
+    searchable = " ".join(
+        [title, str(story.get("story_text") or ""), str(story.get("url") or "")]
+    )
+    matches = classify_architectures(
+        {"name": title, "description": searchable, "topics": []}, taxonomy
+    )
+    published_at = story.get("created_at")
+    source_url = f"https://news.ycombinator.com/item?id={object_id}"
+    identity = f"hacker_news:{object_id}:{observed_at.date().isoformat()}"
+    observation_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+
+    observation = {
+        "observation_id": observation_id,
+        "source_record_id": f"hacker_news:{object_id}",
+        "source": {
+            "source_id": "hacker_news",
+            "source_type": "discussion",
+            "url": source_url,
+            "title": title,
+            "published_at": published_at,
+            "retrieved_at": timestamp,
+        },
+        "observed_at": timestamp,
+        "category": matches[0] if matches else "unclassified",
+        "architecture_matches": matches,
+        "ecosystem": "cross_ecosystem",
+        "claim": (
+            "A Hacker News story matched configured architecture discovery terms. "
+            "Discussion activity is an interest signal, not proof of adoption, quality, "
+            "or performance."
+        ),
+        "claim_type": "discussion",
+        "evidence_status": "unverified",
+        "evidence_notes": (
+            "This record captures a public discussion and its metadata only. "
+            "Review the linked story and its context before drawing conclusions."
+        ),
+        "tags": ["hacker-news", "discussion", *matches],
+        "metrics": {
+            "points": story.get("points"),
+            "comment_count": story.get("num_comments"),
+            "author": story.get("author"),
+            "story_url": story.get("url"),
         },
     }
     validate_observation(observation)
