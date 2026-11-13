@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Sandhiya0305/open-architecture-intelligence/schemas/observation.schema.json",
+  "$id": "https://github.com/Sandhiya0305/open-architecture-intelligence/blob/main/schema/observation.schema.json",
   "title": "Architecture observation",
   "description": "A provenance-preserving observation extracted from a permitted public source.",
   "type": "object",
@@ -32,12 +32,12 @@
       "additionalProperties": false,
       "required": ["workload", "environment", "methodology", "results"],
       "properties": {
-        "workload": {"type": "string"},
-        "environment": {"type": "string"},
+        "workload": {"type": "string", "minLength": 1},
+        "environment": {"type": "string", "minLength": 1},
         "hardware": {"type": "string"},
         "runtime_versions": {"type": "string"},
-        "methodology": {"type": "string"},
-        "results": {"type": "string"},
+        "methodology": {"type": "string", "minLength": 1},
+        "results": {"type": "string", "minLength": 1},
         "measured_at": {"type": ["string", "null"], "format": "date-time"}
       }
     },

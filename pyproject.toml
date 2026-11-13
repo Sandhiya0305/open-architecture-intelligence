@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "License not yet selected" }
 authors = [{ name = "Open Architecture Intelligence contributors" }]
-dependencies = []
+dependencies = ["PyYAML>=6.0", "jsonschema[format]>=4.22"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]

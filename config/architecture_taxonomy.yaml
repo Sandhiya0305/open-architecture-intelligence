@@ -1,1 +1,22 @@
-
+version: 1
+architectures:
+  - id: layered
+    name: Layered Architecture
+    aliases: ["N-tier architecture"]
+    description: "Organizes responsibilities into horizontal layers."
+  - id: modular-monolith
+    name: Modular Monolith
+    aliases: ["modular monolith"]
+    description: "A single deployable application with explicit module boundaries."
+  - id: microservices
+    name: Microservices
+    aliases: ["microservice architecture"]
+    description: "Independently deployable services organized around business capabilities."
+  - id: clean-architecture
+    name: Clean Architecture
+    aliases: ["ports and adapters", "hexagonal architecture"]
+    description: "Separates domain policy from infrastructure through inward-facing dependencies."
+  - id: event-driven
+    name: Event-Driven Architecture
+    aliases: ["EDA"]
+    description: "Coordinates components through the production and consumption of events."

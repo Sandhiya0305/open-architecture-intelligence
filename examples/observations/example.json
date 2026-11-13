@@ -1,0 +1,18 @@
+{
+  "observation_id": "example-modular-monolith-001",
+  "source": {
+    "url": "https://example.com/architecture-overview",
+    "source_type": "article",
+    "title": "Example architecture overview",
+    "published_at": null,
+    "retrieved_at": "2026-11-13T03:30:00Z"
+  },
+  "observed_at": "2026-11-13T03:30:00Z",
+  "category": "modular-monolith",
+  "ecosystem": "python",
+  "claim": "This example illustrates explicit module boundaries in a single deployable application.",
+  "claim_type": "architecture_description",
+  "evidence_status": "unverified",
+  "evidence_notes": "Synthetic fixture for schema validation; not a factual source.",
+  "tags": ["example", "modularity"]
+}
