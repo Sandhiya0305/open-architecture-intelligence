@@ -92,12 +92,14 @@ def test_regenerated_claim_queue_reflects_latest_human_decision(tmp_path: Path):
     data_dir.mkdir()
     source_observation = {
         "observation_id": "observation-live",
+        "source_record_id": "rss:feed:article-1",
         "architecture_matches": ["microservices"],
         "source": {
             "source_id": "rss",
+            "source_type": "article",
             "url": "https://example.org/article",
             "title": "Architecture report",
-            "content_excerpt": "The team chose microservices because independent deployment improved release speed.",
+            "content_excerpt": "The microservices architecture improved independent deployment speed across product teams.",
         },
     }
     (data_dir / f"{AS_OF.isoformat()}.jsonl").write_text(
@@ -116,4 +118,3 @@ def test_regenerated_claim_queue_reflects_latest_human_decision(tmp_path: Path):
 
     assert refreshed_claim["review_status"] == "approve"
     assert refreshed_claim["reviewer"] == "reviewer"
-

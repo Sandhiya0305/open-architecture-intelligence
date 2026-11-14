@@ -1,4 +1,4 @@
-import json
+﻿import json
 from datetime import date
 from pathlib import Path
 
@@ -9,12 +9,18 @@ from oai_intelligence.claims import (
 )
 
 
-def observation(observation_id="obs-1", excerpt="The team chose microservices because independent deployment improved release speed."):
+def observation(
+    observation_id="obs-1",
+    excerpt="The microservices architecture improved independent deployment speed across product teams.",
+    source_id="rss",
+    source_type="article",
+):
     return {
         "observation_id": observation_id,
+        "source_record_id": f"rss:feed:{observation_id}",
         "source": {
-            "source_id": "rss",
-            "source_type": "article",
+            "source_id": source_id,
+            "source_type": source_type,
             "url": f"https://publisher.example/{observation_id}",
             "title": "Architecture case study",
             "content_excerpt": excerpt,
@@ -23,24 +29,59 @@ def observation(observation_id="obs-1", excerpt="The team chose microservices be
     }
 
 
-def test_extracts_explicit_claim_sentence_with_source_provenance():
+def test_extracts_architecture_specific_sentence_with_source_provenance():
     claims = extract_claim_candidates(observation())
 
     assert len(claims) == 1
-    assert "improved release speed" in claims[0]["claim_text"]
+    assert "microservices architecture" in claims[0]["claim_text"]
     assert claims[0]["source_url"] == "https://publisher.example/obs-1"
     assert claims[0]["evidence_status"] == "unverified"
     assert claims[0]["review_status"] == "pending"
+    assert claims[0]["schema_version"] == 1
 
 
-def test_does_not_infer_claim_from_title_or_metadata_without_excerpt():
-    item = observation(excerpt="")
+def test_excludes_repository_descriptions_and_discussion_posts():
+    sentence = "The microservices architecture improved independent deployment speed across product teams."
+    assert extract_claim_candidates(observation(source_id="github", source_type="repository", excerpt=sentence)) == []
+    assert extract_claim_candidates(observation(source_id="hacker_news", source_type="discussion", excerpt=sentence)) == []
+
+
+def test_does_not_infer_claim_from_metadata_or_non_architecture_sentence():
+    assert extract_claim_candidates(observation(excerpt="The team improved release speed across product teams.")) == []
+
+
+def test_strips_html_and_entities_before_extraction():
+    item = observation(excerpt="<p>The microservices architecture improved independent deployment speed across product teams&#x27; services.</p>")
+    claims = extract_claim_candidates(item)
+    assert len(claims) == 1
+    assert "<p>" not in claims[0]["claim_text"]
+    assert "&#x27;" not in claims[0]["claim_text"]
+    assert "teams' services" in claims[0]["claim_text"]
+
+
+def test_rejects_truncated_sentence():
+    item = observation(excerpt="The microservices architecture improved independent deployment speed across product teams...")
     assert extract_claim_candidates(item) == []
 
 
-def test_duplicate_claims_are_flagged_but_not_verified():
-    sentence = "The team chose microservices because independent deployment improved release speed."
-    queue = build_review_queue([observation("one", sentence), observation("two", sentence)])
+def test_repeated_observations_from_same_source_are_collapsed():
+    sentence = "The microservices architecture improved independent deployment speed across product teams."
+    first = observation("day-one", sentence)
+    second = observation("day-two", sentence)
+    second["source_record_id"] = first["source_record_id"]
+    second["source"]["url"] = first["source"]["url"]
+    queue = build_review_queue([first, second])
+
+    assert len(queue) == 1
+    assert queue[0]["claim_id"] == extract_claim_candidates(first)[0]["claim_id"]
+    assert queue[0]["duplicate_observation_ids"] == []
+
+
+def test_same_claim_from_different_sources_is_flagged_for_independence_review():
+    sentence = "The microservices architecture improved independent deployment speed across product teams."
+    first = observation("one", sentence)
+    second = observation("two", sentence)
+    queue = build_review_queue([first, second])
 
     assert len(queue) == 2
     assert all(item["duplicate_observation_ids"] for item in queue)
@@ -66,15 +107,3 @@ def test_review_queue_writes_json_jsonl_and_markdown(tmp_path: Path):
     assert Path(result["json"]).exists()
     assert Path(result["jsonl"]).exists()
     assert "unverified" in Path(result["markdown"]).read_text(encoding="utf-8")
-
-
-def test_splits_multiple_sentences_and_extracts_only_relevant_claims():
-    item = observation(excerpt=(
-        "The team chose microservices for independent deployment. "
-        "This improved release speed across teams.\n"
-        "The weather was sunny yesterday."
-    ))
-    claims = extract_claim_candidates(item)
-    assert len(claims) == 2
-    assert "decision" in claims[0]["claim_kinds"]
-    assert "benefit" in claims[1]["claim_kinds"]

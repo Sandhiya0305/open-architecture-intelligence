@@ -1,10 +1,12 @@
-"""Conservative, deterministic claim candidates and human review queues."""
+﻿"""Conservative extraction of architecture-specific statements from publisher articles."""
 
 import hashlib
+import html
 import json
 import re
 from collections import defaultdict
 from datetime import UTC, date, datetime
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -12,16 +14,56 @@ from urllib.parse import urlsplit
 from oai_intelligence.review import latest_review_decisions
 from oai_intelligence.validation import PROJECT_ROOT, validate_claim
 
-# Only sentences containing explicit trade-off / outcome language become candidates.
 _CLAIM_PATTERNS = {
-    "benefit": re.compile(r"\b(improv(?:e|es|ed|ement)|reduc(?:e|es|ed|tion)|increas(?:e|es|ed)|faster|lower|higher|scalab(?:le|ility)|resilien(?:t|ce))\b", re.IGNORECASE),
-    "limitation": re.compile(r"\b(limit(?:ation|ations|ed)?|drawback|trade[- ]off|overhead|complexity|challeng(?:e|es|ing)|bottleneck|difficult)\b", re.IGNORECASE),
-    "decision": re.compile(r"\b(chose|chosen|adopt(?:ed|s)?|migrat(?:e|ed|ion)|decid(?:e|ed)|prefer(?:red|s)?)\b", re.IGNORECASE),
+    "benefit": re.compile(
+        r"\b(improv(?:e|es|ed|ement)|reduc(?:e|es|ed|tion)|increas(?:e|es|ed)|"
+        r"faster|lower|higher|scalab(?:le|ility)|resilien(?:t|ce))\b",
+        re.IGNORECASE,
+    ),
+    "limitation": re.compile(
+        r"\b(limit(?:ation|ations|ed)?|drawback|trade[- ]off|overhead|complexity|"
+        r"challeng(?:e|es|ing)|bottleneck|difficult)\b",
+        re.IGNORECASE,
+    ),
+    "decision": re.compile(
+        r"\b(chose|chosen|adopt(?:ed|s)?|migrat(?:e|ed|ion)|decid(?:e|ed)|"
+        r"prefer(?:red|s)?)\b",
+        re.IGNORECASE,
+    ),
 }
+_ARCHITECTURE_TERMS = re.compile(
+    r"\b(architecture|architectural|microservices?|monolith(?:ic)?|"
+    r"event[- ]driven|layered|hexagonal|clean architecture|modular|"
+    r"service[- ]oriented|serverless|micro[- ]frontends?|cqrs|event sourcing|"
+    r"api gateway|backend[- ]for[- ]frontend|bff)\b",
+    re.IGNORECASE,
+)
+
+
+class _HTMLText(HTMLParser):
+    """Convert markup to readable text without retaining tags."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self.parts.append(data)
+
+    def text(self) -> str:
+        return " ".join(" ".join(self.parts).split())
+
+
+def _clean_text(value: str) -> str:
+    parser = _HTMLText()
+    parser.feed(html.unescape(value))
+    parser.close()
+    return parser.text()
 
 
 def _sentences(text: str) -> list[str]:
-    return [part.strip(" \t\r\n-") for part in re.split(r"(?<=[.!?])\s+|\n+", text) if part.strip()]
+    parts = re.split(r"(?<=[.!?])\s+|\n+", text)
+    return [part.strip(" \t\r\n-") for part in parts if part.strip()]
 
 
 def _normalize(text: str) -> str:
@@ -38,45 +80,60 @@ def _escape_markdown(value: str) -> str:
 
 
 def extract_claim_candidates(observation: dict[str, Any]) -> list[dict[str, Any]]:
-    """Extract candidate sentences only from captured source text, never metadata metrics."""
+    """Extract review leads only from curated article text, never metadata or discussion."""
     source = observation.get("source", {})
-    excerpt = str(source.get("content_excerpt") or "")
+    if source.get("source_type") != "article" or source.get("source_id") != "rss":
+        return []
+
+    excerpt = _clean_text(str(source.get("content_excerpt") or ""))
     source_url = str(source.get("url") or "")
     parsed_url = urlsplit(source_url)
-    if parsed_url.scheme != "https" or not parsed_url.hostname:
+    if parsed_url.scheme != "https" or not parsed_url.hostname or not excerpt:
         return []
-    if not excerpt.strip():
+
+    source_record_id = str(observation.get("source_record_id") or "")
+    if not source_record_id:
         return []
 
     candidates = []
     for sentence in _sentences(excerpt):
-        if len(sentence) < 35 or len(sentence) > 600:
+        # Reject fragments and feed-summary truncation rather than publishing broken text.
+        if len(sentence) < 45 or len(sentence) > 600:
+            continue
+        if not sentence.endswith((".", "!", "?")) or sentence.endswith("..."):
+            continue
+        if not _ARCHITECTURE_TERMS.search(sentence):
             continue
         matched = [kind for kind, pattern in _CLAIM_PATTERNS.items() if pattern.search(sentence)]
         if not matched:
             continue
         normalized = _normalize(sentence)
-        if len(normalized.split()) < 6:
+        if len(normalized.split()) < 7:
             continue
+
         fingerprint = hashlib.sha256(
-            (
-                f"{observation['observation_id']}:{source_url}:"
-                f"{','.join(sorted(observation.get('architecture_matches', [])))}:{normalized}"
-            ).encode()
+            f"{source_record_id}:{source_url}:{normalized}".encode()
         ).hexdigest()
         candidate = {
+            "schema_version": 1,
             "claim_id": fingerprint,
             "observation_id": observation["observation_id"],
             "source_url": source_url,
-            "source_title": source["title"],
-            "source_id": source["source_id"],
+            "source_title": str(source.get("title") or source_url),
+            "source_id": str(source["source_id"]),
+            "source_record_id": source_record_id,
+            "source_type": "article",
             "architecture_ids": sorted(observation.get("architecture_matches", [])),
             "claim_text": sentence,
             "claim_kinds": matched,
             "evidence_status": "unverified",
             "review_status": "pending",
-            "extraction_method": "deterministic_sentence_rules",
-            "review_note": "Candidate extracted from captured source text; verify the full source and context.",
+            "extraction_method": "architecture_sentence_rules_v2",
+            "review_note": (
+                "Candidate extracted from a curated-feed article summary. "
+                "The full source, author perspective, context, and supporting evidence "
+                "have not been independently assessed."
+            ),
             "normalized_claim": normalized,
             "duplicate_observation_ids": [],
             "possible_conflict_observation_ids": [],
@@ -87,37 +144,34 @@ def extract_claim_candidates(observation: dict[str, Any]) -> list[dict[str, Any]
 
 
 def build_review_queue(observations: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    candidates = [claim for item in observations for claim in extract_claim_candidates(item)]
+    # Stable claim IDs and source_record_id collapse repeated daily observations of one source.
+    unique: dict[str, dict[str, Any]] = {}
+    for observation in observations:
+        for claim in extract_claim_candidates(observation):
+            unique.setdefault(claim["claim_id"], claim)
+
+    candidates = list(unique.values())
     groups: dict[tuple[tuple[str, ...], str], list[dict[str, Any]]] = defaultdict(list)
     for claim in candidates:
         groups[(tuple(claim["architecture_ids"]), claim["normalized_claim"])].append(claim)
 
     queue = []
     for claim in candidates:
-        peers = groups[(tuple(claim["architecture_ids"]), claim["normalized_claim"])]
-        claim = dict(claim)
-        claim["duplicate_observation_ids"] = sorted({
-            peer["observation_id"] for peer in peers if peer["observation_id"] != claim["observation_id"]
-        })
-        # Opposing polarity is only a review flag, not a conclusion that sources conflict.
-        text = claim["claim_text"].casefold()
-        opposing = []
-        for other in candidates:
-            if other["observation_id"] == claim["observation_id"]:
-                continue
-            if other["architecture_ids"] != claim["architecture_ids"]:
-                continue
-            other_text = other["claim_text"].casefold()
-            same_subject = set(_normalize(text).split()) & set(_normalize(other_text).split())
-            if len(same_subject) >= 5 and (("increase" in text and "decrease" in other_text) or ("decrease" in text and "increase" in other_text) or ("improve" in text and "worsen" in other_text) or ("worsen" in text and "improve" in other_text)):
-                opposing.append(other["observation_id"])
-        claim["possible_conflict_observation_ids"] = sorted(set(opposing))
-        if claim["duplicate_observation_ids"]:
-            claim["review_note"] += " Similar exact claim found in another observation; inspect source independence."
-        if claim["possible_conflict_observation_ids"]:
-            claim["review_note"] += " Potentially opposing wording found; compare workloads and context."
-        validate_claim(claim)
-        queue.append(claim)
+        item = dict(claim)
+        peers = groups[(tuple(item["architecture_ids"]), item["normalized_claim"])]
+        independent_peers = [
+            peer for peer in peers if peer["source_record_id"] != item["source_record_id"]
+        ]
+        item["duplicate_observation_ids"] = sorted(
+            {peer["observation_id"] for peer in independent_peers}
+        )
+        if independent_peers:
+            item["review_note"] += (
+                " Similar wording appears in another source; independence and source "
+                "relationship require human inspection."
+            )
+        validate_claim(item)
+        queue.append(item)
     return queue
 
 
@@ -157,6 +211,7 @@ def generate_claim_review_queue(
             claim["reviewed_at"] = decision["reviewed_at"]
             claim["review_note"] += f" Latest human review: {decision['note']}"
         validate_claim(claim)
+
     output_dir.mkdir(parents=True, exist_ok=True)
     jsonl_path = output_dir / f"{as_of.isoformat()}.jsonl"
     json_path = output_dir / f"{as_of.isoformat()}.json"
@@ -165,21 +220,36 @@ def generate_claim_review_queue(
         for item in queue:
             stream.write(json.dumps(item, ensure_ascii=False, sort_keys=True) + "\n")
     json_path.write_text(json.dumps(queue, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    lines = [f"# Claim review queue - {as_of.isoformat()}", "",
-             f"Candidate claims: **{len(queue)}**", "",
-             "All items are unverified candidates. Extraction does not establish truth, causality, or independent corroboration.", ""]
+    lines = [
+        f"# Claim review queue - {as_of.isoformat()}",
+        "",
+        f"Candidate claims: **{len(queue)}**",
+        "",
+        ("All items are unverified review leads. Extraction does not establish truth, causality, " +
+         "independent corroboration, or source credibility."),
+        "",
+    ]
     for index, item in enumerate(queue, start=1):
-        lines.extend([f"## {index}. {_escape_markdown(item['claim_text'])}", "",
-                      f"- Type: {', '.join(item['claim_kinds'])}",
-                      f"- Architecture: {', '.join(item['architecture_ids']) or 'Unclassified'}",
-                      f"- Source: [{_escape_markdown(item['source_title'])}](<{item['source_url']}>)",
-                      f"- Observation: `{item['observation_id']}`",
-                      f"- Claim ID: `{item['claim_id']}`",
-                      f"- Review: {item['review_status']} / {item['evidence_status']}",
-                      f"- Reviewer: {item.get('reviewer', 'Not yet reviewed')}",
-                      f"- Note: {_escape_markdown(item['review_note'])}", ""])
+        lines.extend([
+            f"## {index}. {_escape_markdown(item['claim_text'])}",
+            "",
+            f"- Type: {', '.join(item['claim_kinds'])}",
+            f"- Architecture: {', '.join(item['architecture_ids']) or 'Unclassified'}",
+            f"- Source: [{_escape_markdown(item['source_title'])}](<{item['source_url']}>)",
+            f"- Observation: `{item['observation_id']}`",
+            f"- Claim ID: `{item['claim_id']}`",
+            f"- Review: {item['review_status']} / {item['evidence_status']}",
+            f"- Reviewer: {item.get('reviewer', 'Not yet reviewed')}",
+            f"- Note: {_escape_markdown(item['review_note'])}",
+            "",
+        ])
     markdown_path.write_text("\n".join(lines), encoding="utf-8")
-    return {"observations_scanned": len(observations), "claims_extracted": len(queue),
-            "claims_with_duplicates": sum(bool(x["duplicate_observation_ids"]) for x in queue),
-            "claims_with_possible_conflicts": sum(bool(x["possible_conflict_observation_ids"]) for x in queue),
-            "jsonl": str(jsonl_path), "json": str(json_path), "markdown": str(markdown_path)}
+    return {
+        "observations_scanned": len(observations),
+        "claims_extracted": len(queue),
+        "claims_with_duplicates": sum(bool(x["duplicate_observation_ids"]) for x in queue),
+        "claims_with_possible_conflicts": 0,
+        "jsonl": str(jsonl_path),
+        "json": str(json_path),
+        "markdown": str(markdown_path),
+    }
