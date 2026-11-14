@@ -12,7 +12,7 @@ on:
         default: "10"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: daily-architecture-discovery
@@ -22,67 +22,71 @@ jobs:
   discover:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
     env:
       DISCOVERY_LIMIT: ${{ github.event.inputs.limit || '10' }}
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
         with:
+          version: "0.13.8"
           python-version: "3.12"
-          cache: pip
+          enable-cache: true
+          cache-dependency-glob: uv.lock
 
-      - name: Install OAI
+      - name: Install locked OAI dependencies
         id: install
-        run: python -m pip install --upgrade pip && python -m pip install -e .
+        run: uv sync --locked --no-dev
 
       - name: Discover GitHub repositories
         id: github_discovery
         continue-on-error: true
-        run: oai discover github --limit "$DISCOVERY_LIMIT"
+        run: uv run oai discover github --limit "$DISCOVERY_LIMIT"
 
       - name: Discover Hacker News discussions
         id: hn_discovery
         continue-on-error: true
-        run: oai discover hacker-news --limit "$DISCOVERY_LIMIT"
+        run: uv run oai discover hacker-news --limit "$DISCOVERY_LIMIT"
 
       - name: Discover RSS and Atom articles
         id: rss_discovery
         continue-on-error: true
-        run: oai discover rss --limit "$DISCOVERY_LIMIT"
+        run: uv run oai discover rss --limit "$DISCOVERY_LIMIT"
 
       - name: Generate daily observation snapshot
         id: daily_report
         if: always() && steps.install.outcome == 'success'
         continue-on-error: true
-        run: oai report trends --period daily
+        run: uv run oai report trends --period daily
 
       - name: Generate rolling seven-day observation snapshot
         id: weekly_report
         if: always() && steps.install.outcome == 'success'
         continue-on-error: true
-        run: oai report trends --period weekly
+        run: uv run oai report trends --period weekly
 
       - name: Assess observation evidence
         id: evidence_assessment
         if: always() && steps.install.outcome == 'success'
         continue-on-error: true
-        run: oai assess evidence
+        run: uv run oai assess evidence
 
       - name: Generate claim review queue
         id: claim_queue
         if: always() && steps.install.outcome == 'success'
         continue-on-error: true
-        run: oai claims review-queue
+        run: uv run oai claims review-queue
 
       - name: Prepare human-reviewed knowledge candidates
         id: knowledge_candidates
         if: always() && steps.install.outcome == 'success'
         continue-on-error: true
-        run: oai claims prepare-knowledge
+        run: uv run oai claims prepare-knowledge
 
       - name: Commit partial results and rebase before push
         id: commit_results
@@ -90,19 +94,28 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/observations/ data/reviews/ reports/
+          git add data/observations/ data/reviews/
           if git diff --cached --quiet; then
             echo "No new observations or reports to commit."
           else
             git commit -m "data: update observations and intelligence reports"
             git fetch origin main
             git rebase origin/main
-            git push origin HEAD:main
+            for attempt in 1 2 3; do
+              if git push origin HEAD:main; then
+                exit 0
+              fi
+              echo "Push attempt ${attempt} failed; fetching and rebasing before retry."
+              git fetch origin main
+              git rebase origin/main
+            done
+            echo "Unable to push partial results after three attempts."
+            exit 1
           fi
 
       - name: Check out knowledge repository for manual draft PR
         if: ${{ github.event_name == 'workflow_dispatch' && vars.OAI_ENABLE_KNOWLEDGE_PR == 'true' && steps.install.outcome == 'success' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: Sandhiya0305/open-architecture-knowledge
           ref: main
@@ -116,10 +129,19 @@ jobs:
         run: |
           bundle="reports/knowledge-candidates/$(date -u +%F).md"
           if grep -q "^- Claim ID:" "$bundle"; then
-            oai publish knowledge --bundle "$bundle" --repo-path knowledge-repo
+            uv run oai publish knowledge --bundle "$bundle" --repo-path knowledge-repo
           else
             echo "No human-approved claim candidates. Skipping knowledge PR."
           fi
+
+      - name: Upload generated reports
+        if: always() && steps.install.outcome == 'success'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+        with:
+          name: oai-reports-${{ github.run_id }}
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Summarize partial failures
         if: always()
@@ -145,4 +167,27 @@ jobs:
           if [ "$failed" -eq 1 ]; then
             echo "One or more collection or analysis stages failed. Partial results were retained where possible."
             exit 1
+          fi
+
+
+  notify_failure:
+    if: always() && needs.discover.result == 'failure'
+    needs: discover
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Create or update the daily discovery failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Daily discovery workflow failure"
+          body="$(printf 'The scheduled or manually triggered discovery run failed.\n\nRun: %s\nCommit: %s\nEvent: %s' "$RUN_URL" "$GITHUB_SHA" "$GITHUB_EVENT_NAME")"
+          existing="$(gh issue list --repo "$REPOSITORY" --state open --search "$title in:title" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$REPOSITORY" --title "$title" --body "$body"
           fi

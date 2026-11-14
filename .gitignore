@@ -37,3 +37,6 @@ ENV/
 Thumbs.db
 .idea/
 .vscode/
+
+# Generated intelligence reports (uploaded as workflow artifacts)
+reports/
