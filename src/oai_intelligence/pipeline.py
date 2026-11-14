@@ -14,7 +14,7 @@ from oai_intelligence.models import (
     repository_observation,
 )
 from oai_intelligence.storage import append_observations
-from oai_intelligence.validation import PROJECT_ROOT, validate_project_configs
+from oai_intelligence.validation import CONFIG_ROOT, PROJECT_ROOT, validate_project_configs
 
 
 def build_github_query(settings: dict[str, Any]) -> str:
@@ -24,9 +24,10 @@ def build_github_query(settings: dict[str, Any]) -> str:
 
 def _discovery_context(root: Path) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     validate_project_configs(root)
-    source_config = load_yaml(root / "config" / "sources.yaml")
-    discovery_config = load_yaml(root / "config" / "discovery.yaml")
-    taxonomy = load_yaml(root / "config" / "architecture_taxonomy.yaml")
+    config_root = root if (root / "config").is_dir() else CONFIG_ROOT
+    source_config = load_yaml(config_root / "config" / "sources.yaml")
+    discovery_config = load_yaml(config_root / "config" / "discovery.yaml")
+    taxonomy = load_yaml(config_root / "config" / "architecture_taxonomy.yaml")
     return source_config, discovery_config, taxonomy
 
 

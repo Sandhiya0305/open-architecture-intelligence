@@ -21,6 +21,9 @@ oai = "oai_intelligence.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+oai_intelligence = ["resources/config/*.yaml", "resources/schema/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]

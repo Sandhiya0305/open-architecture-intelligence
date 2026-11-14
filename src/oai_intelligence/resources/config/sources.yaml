@@ -1,0 +1,40 @@
+version: 1
+policy:
+  user_agent: "OpenArchitectureIntelligence/0.1 (+https://github.com/Sandhiya0305/open-architecture-intelligence)"
+  respect_robots_txt: true
+  respect_rate_limits: true
+  store_source_urls: true
+  republish_full_source_text: false
+sources:
+  - id: github
+    type: api
+    enabled: true
+    purpose: "Discover public repositories, releases, and engineering discussions"
+    endpoint: "https://api.github.com"
+    authentication: "optional_token"
+  - id: hacker_news
+    type: indexed_search_api
+    enabled: true
+    purpose: "Discover community discussions and links"
+    endpoint: "https://hn.algolia.com/api/v1"
+    authentication: "none"
+    provider: "Algolia Hacker News Search API"
+  - id: rss
+    type: feed
+    enabled: true
+    purpose: "Discover architecture articles from curated engineering publications"
+    feeds:
+      - id: infoq_architecture
+        publisher: "InfoQ Architecture & Design"
+        url: "https://feed.infoq.com/architecture-design/"
+      - id: aws_architecture
+        publisher: "AWS Architecture Blog"
+        url: "https://aws.amazon.com/blogs/architecture/feed/"
+      - id: martin_fowler
+        publisher: "Martin Fowler"
+        url: "https://martinfowler.com/feed.atom"
+notes:
+  - "Only public, permitted sources are in scope."
+  - "RSS feeds are used for discovery metadata and short summaries; full articles are not republished."
+  - "Mention counts are interest signals, not performance measurements."
+  - "Hacker News full-text search uses the Algolia HN Search API; Firebase is not a full-text search endpoint."
