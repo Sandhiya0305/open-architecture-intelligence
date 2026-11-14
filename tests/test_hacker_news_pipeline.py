@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+﻿from datetime import UTC, datetime
 from unittest.mock import patch
 
 from oai_intelligence.config import load_yaml
@@ -43,8 +43,9 @@ def test_hacker_news_pipeline_deduplicates_results(tmp_path) -> None:
         result = run_hacker_news_discovery(
             limit=2, output_dir=tmp_path, dry_run=False
         )
-    assert search.call_count == 5
+    assert search.call_count == 4
     assert result["unique_stories"] == 1
     assert result["classified_candidates"] == 1
     assert result["new_observations"] == 1
     assert len(next(tmp_path.glob("*.jsonl")).read_text().splitlines()) == 1
+

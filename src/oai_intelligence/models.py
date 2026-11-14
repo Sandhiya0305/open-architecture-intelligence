@@ -1,4 +1,4 @@
-"""Canonical observation construction and validation."""
+﻿"""Canonical observation construction and validation."""
 
 import hashlib
 import re
@@ -32,7 +32,7 @@ def classify_architectures(repository: dict[str, Any], taxonomy: dict[str, Any])
     )
     matches: list[str] = []
     for architecture in taxonomy.get("architectures", []):
-        terms = [architecture["name"], architecture["id"], *architecture.get("aliases", [])]
+        terms = [architecture["name"], *architecture.get("aliases", [])]
         if any(_matches(searchable, term) for term in terms):
             matches.append(architecture["id"])
     return matches
@@ -216,3 +216,4 @@ def article_observation(
     }
     validate_observation(observation)
     return observation
+

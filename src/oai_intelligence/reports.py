@@ -1,4 +1,4 @@
-"""Deterministic, evidence-aware summaries of collected observations."""
+"""Sample-aware summaries of collected architecture observations."""
 
 import json
 from collections import Counter
@@ -36,11 +36,23 @@ def _parse_timestamp(value: str) -> datetime:
     return parsed.astimezone(UTC)
 
 
-def _period_counts(records: list[dict[str, Any]], start: datetime, end: datetime) -> dict[str, Any]:
-    selected = [
+def _period_counts(
+    records: list[dict[str, Any]], start: datetime, end: datetime
+) -> dict[str, Any]:
+    raw_selected = [
         item for item in records
         if start <= _parse_timestamp(item["observed_at"]) < end
     ]
+
+    # A source can be observed on several days. Keep its latest snapshot once per window.
+    latest_by_source: dict[str, dict[str, Any]] = {}
+    for index, item in enumerate(raw_selected):
+        source_key = str(item.get("source_record_id") or item.get("observation_id") or f"record:{index}")
+        current = latest_by_source.get(source_key)
+        if current is None or _parse_timestamp(item["observed_at"]) > _parse_timestamp(current["observed_at"]):
+            latest_by_source[source_key] = item
+    selected = list(latest_by_source.values())
+
     architectures: Counter[str] = Counter()
     sources: Counter[str] = Counter()
     ecosystems: Counter[str] = Counter()
@@ -48,7 +60,6 @@ def _period_counts(records: list[dict[str, Any]], start: datetime, end: datetime
     source_types: Counter[str] = Counter()
 
     for item in selected:
-        # Count each architecture at most once per observation.
         architectures.update(set(item.get("architecture_matches", [])))
         sources[item.get("source", {}).get("source_id", "unknown")] += 1
         ecosystems[item.get("ecosystem", "unknown")] += 1
@@ -56,7 +67,9 @@ def _period_counts(records: list[dict[str, Any]], start: datetime, end: datetime
         source_types[item.get("source", {}).get("source_type", "unknown")] += 1
 
     return {
+        "raw_observation_count": len(raw_selected),
         "observation_count": len(selected),
+        "unique_source_records": len(selected),
         "architecture_mentions": dict(sorted(architectures.items())),
         "by_source": dict(sorted(sources.items())),
         "by_ecosystem": dict(sorted(ecosystems.items())),
@@ -72,60 +85,37 @@ def _format_counts(title: str, counts: dict[str, int]) -> list[str]:
     return [*lines, *(f"- {key}: {value}" for key, value in counts.items())]
 
 
-def _comparison(current: dict[str, Any], previous: dict[str, Any]) -> list[str]:
-    lines = ["## Change versus the previous equivalent period", ""]
-    current_total = current["observation_count"]
-    previous_total = previous["observation_count"]
-    lines.append(
-        f"- Observations: {current_total} "
-        f"({'+' if current_total - previous_total >= 0 else ''}{current_total - previous_total} "
-        f"versus {previous_total} previously)."
-    )
-    keys = sorted(set(current["architecture_mentions"]) | set(previous["architecture_mentions"]))
-    if not keys:
-        lines.append("- No architecture mentions in either period.")
-    for key in keys:
-        now = current["architecture_mentions"].get(key, 0)
-        before = previous["architecture_mentions"].get(key, 0)
-        delta = now - before
-        lines.append(f"- {key}: {now} mentions ({'+' if delta >= 0 else ''}{delta} versus {before}).")
-    return lines
-
-
 def render_trend_report(
     records: list[dict[str, Any]], period: str, as_of: date
 ) -> tuple[str, dict[str, Any]]:
-    """Render daily or rolling seven-day report and return its structured data."""
+    """Render a sample snapshot; it intentionally makes no trend or adoption inference."""
     if period not in {"daily", "weekly"}:
         raise ValueError("period must be 'daily' or 'weekly'")
     days = 1 if period == "daily" else 7
     end = datetime.combine(as_of + timedelta(days=1), time.min, tzinfo=UTC)
     start = end - timedelta(days=days)
-    previous_start = start - timedelta(days=days)
     current = _period_counts(records, start, end)
-    previous = _period_counts(records, previous_start, start)
     report_data = {
         "period": period,
         "period_start": start.isoformat(),
         "period_end_exclusive": end.isoformat(),
-        "previous_period_start": previous_start.isoformat(),
-        "previous_period_end_exclusive": start.isoformat(),
         "current": current,
-        "previous": previous,
     }
 
-    heading = "Daily" if period == "daily" else "Weekly"
+    heading = "Daily" if period == "daily" else "Rolling seven-day"
     lines = [
-        f"# {heading} Architecture Observation Report â€” {as_of.isoformat()}",
+        f"# {heading} Architecture Observation Snapshot - {as_of.isoformat()}",
         "",
         f"**Window:** {start.date().isoformat()} to {as_of.isoformat()} (UTC, inclusive).",
         "",
         "## Scope and interpretation",
         "",
-        f"- Collected observations in this window: **{current['observation_count']}**.",
-        "- Architecture counts are classified mentions in collected records, not verified adoption, market share, or architecture quality.",
-        "- Source and ecosystem counts describe this discovery sample; they are not representative population estimates.",
-        "- Evidence labels reflect the stored review state. An unverified record is not a verified technical claim.",
+        f"- Raw collected observations in this window: **{current['raw_observation_count']}**.",
+        f"- Unique source records represented: **{current['unique_source_records']}**.",
+        "- Repeated snapshots of the same source record are counted once, using the latest snapshot in the window.",
+        "- Collection is capped per query/feed. GitHub discovery is ordered by recently updated repositories.",
+        "- These counts describe the collected sample only. They are not representative estimates of developer interest, adoption, market share, or architecture quality.",
+        "- No period-over-period deltas are reported because collection limits and source ordering make those changes unsuitable as trend estimates.",
         "- Repository stars, forks, and discussion activity are not performance measurements.",
         "",
         "## Architecture mentions",
@@ -135,10 +125,8 @@ def render_trend_report(
         [f"- {key}: {value}" for key, value in current["architecture_mentions"].items()]
         or ["- No classified architecture mentions in this period."]
     )
-    lines += ["", *_comparison(current, previous), ""]
-    lines += _format_counts("Observations by source", current["by_source"])
-    lines += [""]
-    lines += _format_counts("Observations by ecosystem", current["by_ecosystem"])
+    lines += ["", *_format_counts("Unique source records by source", current["by_source"]), ""]
+    lines += _format_counts("Unique source records by ecosystem", current["by_ecosystem"])
     lines += [""]
     lines += _format_counts("Evidence status", current["by_evidence_status"])
     lines += [""]
@@ -160,7 +148,7 @@ def generate_trend_report(
     output_dir: Path | None = None,
     root: Path = PROJECT_ROOT,
 ) -> dict[str, Any]:
-    """Generate Markdown and JSON reports from the append-only observation history."""
+    """Generate Markdown and JSON sample snapshots from observation history."""
     report_date = as_of or datetime.now(UTC).date()
     records = load_observations(data_dir or root / "data" / "observations")
     markdown, report_data = render_trend_report(records, period, report_date)
@@ -176,6 +164,7 @@ def generate_trend_report(
         "as_of": stem,
         "observations_loaded": len(records),
         "observations_in_period": report_data["current"]["observation_count"],
+        "raw_observations_in_period": report_data["current"]["raw_observation_count"],
         "markdown": str(markdown_path),
         "json": str(json_path),
     }

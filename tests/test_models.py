@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from oai_intelligence.config import load_yaml
-from oai_intelligence.models import repository_observation
+from oai_intelligence.models import classify_architectures, repository_observation
 from oai_intelligence.validation import PROJECT_ROOT
 
 
@@ -58,3 +58,16 @@ def test_same_repository_same_day_has_stable_observation_id() -> None:
     first = repository_observation(repository, "python", taxonomy, now)
     second = repository_observation(repository, "python", taxonomy, now)
     assert first["observation_id"] == second["observation_id"]
+
+
+def test_classifier_does_not_match_bare_taxonomy_id():
+    taxonomy = load_yaml(PROJECT_ROOT / "config" / "architecture_taxonomy.yaml")
+    assert classify_architectures({"name": "layered"}, taxonomy) == []
+    assert classify_architectures({"name": "Layered Architecture example"}, taxonomy) == ["layered"]
+
+
+def test_classifier_uses_explicit_aliases():
+    taxonomy = load_yaml(PROJECT_ROOT / "config" / "architecture_taxonomy.yaml")
+    assert classify_architectures({"name": "Ports and Adapters example"}, taxonomy) == [
+        "clean-architecture"
+    ]

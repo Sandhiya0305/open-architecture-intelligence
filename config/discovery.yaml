@@ -3,32 +3,28 @@ ecosystems:
   nodejs:
     github_language: JavaScript
     query_terms:
-      - microservices
-      - '"clean architecture"'
-      - '"event-driven"'
-      - '"modular monolith"'
-      - '"layered architecture"'
+      - '"software architecture"'
+      - '"system design"'
+      - '"application architecture"'
+      - '"distributed systems"'
   python:
     github_language: Python
     query_terms:
-      - microservices
-      - '"clean architecture"'
-      - '"event-driven"'
-      - '"modular monolith"'
-      - '"layered architecture"'
+      - '"software architecture"'
+      - '"system design"'
+      - '"application architecture"'
+      - '"distributed systems"'
   java:
     github_language: Java
     query_terms:
-      - microservices
-      - '"clean architecture"'
-      - '"event-driven"'
-      - '"modular monolith"'
-      - '"layered architecture"'
+      - '"software architecture"'
+      - '"system design"'
+      - '"application architecture"'
+      - '"distributed systems"'
   php:
     github_language: PHP
     query_terms:
-      - microservices
-      - '"clean architecture"'
-      - '"event-driven"'
-      - '"modular monolith"'
-      - '"layered architecture"'
+      - '"software architecture"'
+      - '"system design"'
+      - '"application architecture"'
+      - '"distributed systems"'
