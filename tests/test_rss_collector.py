@@ -1,4 +1,5 @@
 import io
+from pathlib import Path
 from unittest.mock import patch
 from urllib.error import URLError
 
@@ -127,3 +128,25 @@ def test_non_https_feed_is_rejected() -> None:
     collector = RSSCollector(user_agent="OAI-tests")
     with pytest.raises(ValueError, match="HTTPS"):
         collector.fetch_feed({"id": "unsafe", "url": "http://example.com/feed"})
+
+
+def test_parses_captured_public_atom_feed_entry():
+    atom_fixture = (Path(__file__).parent / "fixtures/martin_fowler_first_entry.atom").read_bytes()
+    collector = RSSCollector(user_agent="OAI-tests")
+    feed = {
+        "id": "martin_fowler",
+        "publisher": "Martin Fowler",
+        "publisher_type": "practitioner",
+        "url": "https://martinfowler.com/feed.atom",
+    }
+
+    with patch(
+        "oai_intelligence.collectors.rss.urlopen",
+        side_effect=[io.BytesIO(ROBOTS_ALLOW), io.BytesIO(atom_fixture)],
+    ):
+        items = collector.fetch_feed(feed, limit=1)
+
+    assert len(items) == 1
+    assert items[0]["title"] == "Bliki: Generated Glossary"
+    assert items[0]["url"] == "https://martinfowler.com/bliki/GeneratedGlossary.html"
+    assert items[0]["publisher_type"] == "practitioner"

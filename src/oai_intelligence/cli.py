@@ -110,7 +110,8 @@ def main(argv: list[str] | None = None) -> int:
             print("Discovery: GitHub repositories, Hacker News discussions, and RSS/Atom articles.")
             print("Analysis: trend reports, evidence assessments, and source-linked claim review.")
             print(
-                "Publishing: human-approved candidates are proposed through draft pull requests only."
+                "Publishing: human-approved candidates are proposed through "
+                "draft pull requests only."
             )
             print("Scheduled execution: configured through GitHub Actions.")
         elif args.command == "validate-config":

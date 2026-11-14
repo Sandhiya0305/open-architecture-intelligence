@@ -1,4 +1,4 @@
-﻿from datetime import date
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -19,7 +19,9 @@ def valid_bundle(path: Path) -> Path:
     return path
 
 
-def test_publish_requires_dedicated_cross_repository_token_before_git_changes(tmp_path: Path, monkeypatch):
+def test_publish_requires_dedicated_cross_repository_token_before_git_changes(
+    tmp_path: Path, monkeypatch
+):
     monkeypatch.delenv("OAI_GITHUB_TOKEN", raising=False)
     monkeypatch.setenv("GITHUB_TOKEN", "ambient-token-must-not-be-used")
     bundle = valid_bundle(tmp_path / "bundle.md")
@@ -48,7 +50,11 @@ def test_publish_creates_site_visible_draft_pr_and_uses_explicit_token(tmp_path:
         if args == ("remote", "get-url", "origin"):
             return "https://github.com/Sandhiya0305/open-architecture-knowledge.git"
         if args == ("branch", "--show-current"):
-            return original_branch if not any(call[0][:2] == ("switch", "--create") for call in git_calls) else "oai/knowledge-candidates-20261113"
+            return (
+                original_branch
+                if not any(call[0][:2] == ("switch", "--create") for call in git_calls)
+                else "oai/knowledge-candidates-20261113"
+            )
         return ""
 
     def fake_request(url, token, payload):
@@ -88,4 +94,3 @@ def test_publish_refuses_dirty_knowledge_repo(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(publishing, "_git", fake_git)
     with pytest.raises(PublishingError, match="uncommitted changes"):
         publish_knowledge_candidates(bundle, repo, token="test-token")
-

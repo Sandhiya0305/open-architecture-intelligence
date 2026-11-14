@@ -1,5 +1,6 @@
 import io
 import json
+from pathlib import Path
 from unittest.mock import patch
 from urllib.error import URLError
 
@@ -12,22 +13,24 @@ from oai_intelligence.collectors.hacker_news import (
 
 
 def test_search_stories_uses_algolia_search_endpoint() -> None:
-    payload = {"hits": [{"objectID": "123", "title": "Microservices"}]}
+    payload = json.loads(
+        (Path(__file__).parent / "fixtures/hacker_news_search_response.json").read_text(
+            encoding="utf-8"
+        )
+    )
     response = io.BytesIO(json.dumps(payload).encode())
     collector = HackerNewsCollector(user_agent="OAI-tests")
 
-    with patch(
-        "oai_intelligence.collectors.hacker_news.urlopen", return_value=response
-    ) as mocked:
+    with patch("oai_intelligence.collectors.hacker_news.urlopen", return_value=response) as mocked:
         result = collector.search_stories("microservices", limit=5)
 
     request = mocked.call_args.args[0]
-    assert request.full_url.startswith(
-        "https://hn.algolia.com/api/v1/search_by_date?"
-    )
+    assert request.full_url.startswith("https://hn.algolia.com/api/v1/search_by_date?")
     assert "tags=story" in request.full_url
     assert request.get_header("User-agent") == "OAI-tests"
     assert result == payload["hits"]
+    assert result[0]["objectID"]
+    assert result[0]["created_at"]
 
 
 def test_search_stories_retries_temporary_network_errors() -> None:
@@ -62,7 +65,6 @@ def test_invalid_search_payload_is_rejected() -> None:
         pytest.raises(HackerNewsCollectorError, match="hits list"),
     ):
         collector.search_stories("python")
-
 
 
 def test_response_size_is_bounded() -> None:

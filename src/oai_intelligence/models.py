@@ -1,6 +1,7 @@
 """Canonical observation construction and validation."""
 
 import hashlib
+import json
 import re
 from datetime import UTC, datetime
 from typing import Any
@@ -22,25 +23,72 @@ def _matches(text: str, term: str) -> bool:
     return f" {needle} " in f" {haystack} "
 
 
+_ARCHITECTURE_CONTEXT = (
+    "software",
+    "system",
+    "application",
+    "backend",
+    "domain",
+    "deployment",
+    "module boundaries",
+    "message broker",
+    "reference implementation",
+    "design pattern",
+    "presentation",
+    "persistence",
+    "implementation",
+    "codebase",
+    "service discovery",
+    "domain events",
+    "example",
+    "demo",
+    "sample",
+    "guide",
+    "tutorial",
+    "dependency direction",
+)
+
+
 def classify_architectures(repository: dict[str, Any], taxonomy: dict[str, Any]) -> list[str]:
-    searchable = " ".join(
-        [
-            str(repository.get("name", "")),
-            str(repository.get("full_name", "")),
-            str(repository.get("description") or ""),
-            " ".join(repository.get("topics") or []),
-        ]
-    )
+    """Classify only when a pattern term has descriptive or explicit topic context."""
+    name = " ".join([str(repository.get("name", "")), str(repository.get("full_name", ""))])
+    description = str(repository.get("description") or "")
+    topics = " ".join(repository.get("topics") or [])
+    descriptive_text = " ".join([description, topics, name])
+    has_context = any(_matches(descriptive_text, term) for term in _ARCHITECTURE_CONTEXT)
+
     matches: list[str] = []
     for architecture in taxonomy.get("architectures", []):
         terms = [architecture["name"], *architecture.get("aliases", [])]
-        if any(_matches(searchable, term) for term in terms):
+        explicit_topic_match = any(_matches(topics, term) for term in terms)
+        description_match = has_context and any(_matches(description, term) for term in terms)
+        name_match = has_context and any(_matches(name, term) for term in terms)
+        if explicit_topic_match or description_match or name_match:
             matches.append(architecture["id"])
     return matches
 
 
 def _timestamp(value: datetime) -> str:
     return value.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _snapshot_observation_id(observation: ObservationRecord) -> str:
+    """Fingerprint source content and measured metadata, excluding retrieval times."""
+    snapshot = {
+        key: value
+        for key, value in observation.items()
+        if key not in {"observation_id", "observed_at"}
+    }
+    source = dict(observation["source"])
+    source.pop("retrieved_at", None)
+    snapshot["source"] = source
+    serialized = json.dumps(
+        snapshot,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 def repository_observation(
@@ -55,13 +103,11 @@ def repository_observation(
     source_url = repository["html_url"]
     matches = classify_architectures(repository, taxonomy)
     category = matches[0] if matches else "unclassified"
-    identity = f"github:{full_name.casefold()}:{observed_at.date().isoformat()}"
-    observation_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
     license_info = repository.get("license") or {}
 
     observation: ObservationRecord = {
         "schema_version": 1,
-        "observation_id": observation_id,
+        "observation_id": "",
         "source_record_id": f"github:{full_name}",
         "source": {
             "source_id": "github",
@@ -101,6 +147,7 @@ def repository_observation(
             "license_spdx_id": license_info.get("spdx_id"),
         },
     }
+    observation["observation_id"] = _snapshot_observation_id(observation)
     validate_observation(observation)
     return observation
 
@@ -123,12 +170,10 @@ def discussion_observation(
     )
     published_at = story.get("created_at")
     source_url = f"https://news.ycombinator.com/item?id={object_id}"
-    identity = f"hacker_news:{object_id}:{observed_at.date().isoformat()}"
-    observation_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
 
     observation: ObservationRecord = {
         "schema_version": 1,
-        "observation_id": observation_id,
+        "observation_id": "",
         "source_record_id": f"hacker_news:{object_id}",
         "source": {
             "source_id": "hacker_news",
@@ -162,15 +207,9 @@ def discussion_observation(
             "story_url": story.get("url"),
         },
     }
+    observation["observation_id"] = _snapshot_observation_id(observation)
     validate_observation(observation)
     return observation
-
-
-_PERFORMANCE_TERMS = re.compile(
-    r"\b(latency|throughput|requests? per second|rps|p95|p99|benchmark|"
-    r"load test|response time|memory usage|cpu usage)\b",
-    re.IGNORECASE,
-)
 
 
 def article_observation(
@@ -192,13 +231,11 @@ def article_observation(
     matches = classify_architectures(
         {"name": title, "description": searchable, "topics": []}, taxonomy
     )
-    identity = f"rss:{feed_id}:{entry_id.casefold()}:{observed_at.date().isoformat()}"
-    observation_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
     publisher = str(article.get("publisher") or article.get("feed_title") or feed_id)
 
     observation: ObservationRecord = {
         "schema_version": 1,
-        "observation_id": observation_id,
+        "observation_id": "",
         "source_record_id": f"rss:{feed_id}:{entry_id}",
         "source": {
             "source_id": "rss",
@@ -219,14 +256,12 @@ def article_observation(
             f"An article from {publisher} matched configured architecture discovery terms. "
             "This is a research candidate, not independently verified evidence."
         ),
-        "claim_type": "performance_claim"
-        if _PERFORMANCE_TERMS.search(searchable)
-        else "discovery_candidate",
+        "claim_type": "discovery_candidate",
         "evidence_status": "unverified",
         "evidence_notes": (
-            "Classification uses article title and feed summary only. A performance keyword "
-            "marks a candidate for methodology review; it is not a measured result. "
-            "The full article has not been reviewed or corroborated."
+            "Classification uses article title and feed summary only. Performance "
+            "assessment is applied to extracted statements, not unrelated wording in "
+            "the wider summary. The full article has not been reviewed or corroborated."
         ),
         "tags": ["rss", "article", publisher, *matches],
         "metrics": {},
@@ -234,5 +269,6 @@ def article_observation(
     details = article.get("evidence_details")
     if isinstance(details, dict):
         observation["evidence_details"] = details
+    observation["observation_id"] = _snapshot_observation_id(observation)
     validate_observation(observation)
     return observation

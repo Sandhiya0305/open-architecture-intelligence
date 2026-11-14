@@ -1,4 +1,6 @@
+import json
 from datetime import UTC, datetime
+from pathlib import Path
 
 from oai_intelligence.config import load_yaml
 from oai_intelligence.models import (
@@ -40,7 +42,7 @@ def test_repository_is_classified_and_validated() -> None:
     assert observation["source"]["content_excerpt"] == repository["description"]
 
 
-def test_same_repository_same_day_has_stable_observation_id() -> None:
+def test_same_repository_unchanged_snapshot_is_idempotent_across_days() -> None:
     taxonomy = load_yaml(PROJECT_ROOT / "config" / "architecture_taxonomy.yaml")
     repository = {
         "name": "microservices",
@@ -59,10 +61,64 @@ def test_same_repository_same_day_has_stable_observation_id() -> None:
         "archived": False,
         "license": None,
     }
-    now = datetime(2026, 11, 13, 10, tzinfo=UTC)
-    first = repository_observation(repository, "python", taxonomy, now)
-    second = repository_observation(repository, "python", taxonomy, now)
+    first = repository_observation(
+        repository, "python", taxonomy, datetime(2026, 11, 13, 10, tzinfo=UTC)
+    )
+    second = repository_observation(
+        repository, "python", taxonomy, datetime(2026, 11, 14, 10, tzinfo=UTC)
+    )
+    assert first["source_record_id"] == second["source_record_id"]
     assert first["observation_id"] == second["observation_id"]
+
+
+def test_repository_metric_change_creates_a_new_snapshot_id() -> None:
+    taxonomy = load_yaml(PROJECT_ROOT / "config" / "architecture_taxonomy.yaml")
+    repository = {
+        "name": "orders-service",
+        "full_name": "sample/orders-service",
+        "description": "A microservices architecture example application.",
+        "topics": ["microservices"],
+        "html_url": "https://github.com/sample/orders-service",
+        "stargazers_count": 10,
+        "forks_count": 2,
+        "open_issues_count": 1,
+        "language": "Python",
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2026-11-13T00:00:00Z",
+        "pushed_at": "2026-11-13T00:00:00Z",
+        "default_branch": "main",
+        "archived": False,
+        "license": {"spdx_id": "MIT"},
+    }
+    first = repository_observation(repository, "python", taxonomy)
+    updated = {**repository, "stargazers_count": 11}
+    second = repository_observation(updated, "python", taxonomy)
+    assert first["source_record_id"] == second["source_record_id"]
+    assert first["observation_id"] != second["observation_id"]
+
+
+def test_article_summary_enrichment_creates_a_new_snapshot_id() -> None:
+    taxonomy = load_yaml(PROJECT_ROOT / "config" / "architecture_taxonomy.yaml")
+    article = {
+        "url": "https://example.org/microservices",
+        "title": "Microservices architecture example",
+        "feed_id": "example_feed",
+        "entry_id": "article-1",
+        "publisher": "Example Engineering",
+        "publisher_type": "editorial",
+        "summary": "A short summary about a microservices architecture.",
+    }
+    first = article_observation(article, taxonomy)
+    enriched = {
+        **article,
+        "summary": (
+            "A short summary about a microservices architecture. "
+            "The article explains service boundaries and independent deployment."
+        ),
+    }
+    second = article_observation(enriched, taxonomy)
+    assert first["source_record_id"] == second["source_record_id"]
+    assert first["observation_id"] != second["observation_id"]
 
 
 def test_classifier_does_not_match_bare_taxonomy_id():
@@ -91,5 +147,27 @@ def test_article_performance_language_is_flagged_for_methodology_review():
 
     observation = article_observation(article, taxonomy, datetime(2026, 11, 14, tzinfo=UTC))
 
-    assert observation["claim_type"] == "performance_claim"
+    assert observation["claim_type"] == "discovery_candidate"
     assert observation["evidence_status"] == "unverified"
+
+
+def test_classifier_precision_on_labeled_regression_fixture():
+    taxonomy = load_yaml(PROJECT_ROOT / "config" / "architecture_taxonomy.yaml")
+    cases = json.loads(
+        (Path(__file__).parent / "fixtures/classifier_evaluation.json").read_text(encoding="utf-8")
+    )
+    true_positives = 0
+    false_positives = 0
+    false_negatives = 0
+
+    for case in cases:
+        predicted = set(classify_architectures(case, taxonomy))
+        expected = set(case["expected"])
+        true_positives += len(predicted & expected)
+        false_positives += len(predicted - expected)
+        false_negatives += len(expected - predicted)
+
+    precision = true_positives / (true_positives + false_positives)
+    recall = true_positives / (true_positives + false_negatives)
+    assert precision >= 0.9
+    assert recall >= 0.9

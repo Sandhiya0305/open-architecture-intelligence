@@ -79,9 +79,15 @@ def assess_observations(
             matching_hosts.update(statement_hosts.get(key, set()) - ({host} if host else set()))
 
         claim_type = record.get("claim_type", "other")
+        performance_candidates = [
+            candidate for candidate in candidates if "performance" in candidate["claim_kinds"]
+        ]
         is_performance = (
-            claim_type == "performance_claim" or source.get("source_type") == "benchmark"
+            claim_type == "performance_claim"
+            or source.get("source_type") == "benchmark"
+            or bool(performance_candidates)
         )
+        assessed_claim_type = "performance_claim" if performance_candidates else claim_type
         missing_benchmark_fields = [
             field for field in BENCHMARK_FIELDS if not _has_value(evidence.get(field))
         ]
@@ -89,7 +95,10 @@ def assess_observations(
 
         if original_status == "rejected":
             disposition = "rejected_existing_record"
-            rationale = "The observation is already marked rejected; this assessment does not reverse that decision."
+            rationale = (
+                "The observation is already marked rejected; "
+                "this assessment does not reverse that decision."
+            )
         elif is_performance and missing_benchmark_fields:
             disposition = "benchmark_incomplete"
             rationale = (
@@ -118,7 +127,8 @@ def assess_observations(
             disposition = "no_extractable_architecture_statement"
             rationale = (
                 "No complete architecture-specific outcome, limitation, or decision statement "
-                "was extracted. Repository metadata and discussion activity are not technical evidence."
+                "was extracted. Repository metadata and discussion activity "
+                "are not technical evidence."
             )
 
         assessments.append(
@@ -127,7 +137,7 @@ def assess_observations(
                 "source_record_id": record.get("source_record_id", ""),
                 "source_host": host or None,
                 "source_type": source.get("source_type"),
-                "claim_type": claim_type,
+                "claim_type": assessed_claim_type,
                 "architecture_matches": sorted(set(record.get("architecture_matches", []))),
                 "extracted_statements": [
                     {
@@ -208,9 +218,18 @@ def render_evidence_summary(
         "- Original observations are immutable; assessment output is stored separately.",
         "- Extracted statements are leads for source review, not verified facts.",
         "- Matching hostnames do not establish independent ownership or corroboration.",
-        "- Stars, forks, points, and comments are source-activity metadata, never performance evidence.",
-        "- Benchmark completeness checks field presence only; it does not validate experimental quality or reproducibility.",
-        "- No assessment automatically changes evidence_status or approves a knowledge-base update.",
+        (
+            "- Stars, forks, points, and comments are source-activity metadata, "
+            "never performance evidence."
+        ),
+        (
+            "- Benchmark completeness checks field presence only; it does not validate "
+            "experimental quality or reproducibility."
+        ),
+        (
+            "- No assessment automatically changes evidence_status or approves a "
+            "knowledge-base update."
+        ),
         "",
     ]
     return "\n".join(lines), data

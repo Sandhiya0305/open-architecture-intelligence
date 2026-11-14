@@ -1,4 +1,4 @@
-﻿from datetime import UTC, datetime
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 from oai_intelligence.config import load_yaml
@@ -22,9 +22,7 @@ def _story() -> dict:
 
 def test_discussion_observation_is_cross_ecosystem_and_unverified() -> None:
     taxonomy = load_yaml(PROJECT_ROOT / "config" / "architecture_taxonomy.yaml")
-    observation = discussion_observation(
-        _story(), taxonomy, datetime(2026, 11, 13, tzinfo=UTC)
-    )
+    observation = discussion_observation(_story(), taxonomy, datetime(2026, 11, 13, tzinfo=UTC))
     assert observation["source"]["source_type"] == "discussion"
     assert observation["source"]["url"].endswith("id=98765")
     assert observation["ecosystem"] == "cross_ecosystem"
@@ -40,12 +38,9 @@ def test_hacker_news_pipeline_deduplicates_results(tmp_path) -> None:
         "oai_intelligence.pipeline.HackerNewsCollector.search_stories",
         return_value=[story, story],
     ) as search:
-        result = run_hacker_news_discovery(
-            limit=2, output_dir=tmp_path, dry_run=False
-        )
+        result = run_hacker_news_discovery(limit=2, output_dir=tmp_path, dry_run=False)
     assert search.call_count == 4
     assert result["unique_stories"] == 1
     assert result["classified_candidates"] == 1
     assert result["new_observations"] == 1
     assert len(next(tmp_path.glob("*.jsonl")).read_text().splitlines()) == 1
-

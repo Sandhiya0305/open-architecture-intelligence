@@ -77,8 +77,9 @@
       "items": {
         "enum": [
           "benefit",
+          "decision",
           "limitation",
-          "decision"
+          "performance"
         ]
       }
     },

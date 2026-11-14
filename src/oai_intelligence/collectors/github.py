@@ -34,9 +34,7 @@ class GitHubCollector:
     def search_repositories(self, query: str, limit: int = 10) -> list[dict[str, Any]]:
         if not 1 <= limit <= 100:
             raise ValueError("GitHub search limit must be between 1 and 100.")
-        params = urlencode(
-            {"q": query, "sort": "updated", "order": "desc", "per_page": limit}
-        )
+        params = urlencode({"q": query, "sort": "updated", "order": "desc", "per_page": limit})
         request = Request(
             f"{self.API_ROOT}/search/repositories?{params}",
             headers=self._headers(),

@@ -32,4 +32,6 @@ def test_discovery_terms_are_not_the_taxonomy_match_terms():
         for term in [architecture["name"], *architecture.get("aliases", [])]
     }
     for settings in discovery["ecosystems"].values():
-        assert all(term.strip('"').casefold() not in match_terms for term in settings["query_terms"])
+        assert all(
+            term.strip('"').casefold() not in match_terms for term in settings["query_terms"]
+        )

@@ -179,11 +179,17 @@ def prepare_knowledge_candidates(
     lines = [
         f"# Reviewed architecture claim candidates - {as_of.isoformat()}",
         "",
-        "> **Evidence status: UNVERIFIED.** Human approval here means editorial approval to propose this candidate, not scientific verification, proof of causality, or a performance finding.",
+        (
+            "> **Evidence status: UNVERIFIED.** Human approval here means editorial "
+            "approval to propose this candidate, not scientific verification, proof "
+            "of causality, or a performance finding."
+        ),
         "",
         (
             "Only candidates with an explicit authenticated GitHub review decision are included. "
-            + "The reviewer attests that the linked source was opened and checked. Original wording is retained as a short excerpt; consult the linked source for full context. No benchmark or comparative conclusion is inferred."
+            "The reviewer attests that the linked source was opened and checked. Original "
+            "wording is retained as a short excerpt; consult the linked source for full context. "
+            "No benchmark or comparative conclusion is inferred."
         ),
         "",
     ]
@@ -199,7 +205,8 @@ def prepare_knowledge_candidates(
                 f"- Source: [{escape_markdown(item['source_title'])}](<{item['source_url']}>)",
                 f"- Observation ID: `{item['observation_id']}`",
                 f"- Claim ID: `{item['claim_id']}`",
-                f"- Human review: {escape_markdown(review['reviewer'])} (GitHub user ID {review['reviewer_id']}, {review['reviewed_at']})",
+                f"- Human review: {escape_markdown(review['reviewer'])} "
+                f"(GitHub user ID {review['reviewer_id']}, {review['reviewed_at']})",
                 f"- Source checked: {review['reviewed_source_url']}",
                 f"- Review note: {escape_markdown(review['note'])}",
                 "",

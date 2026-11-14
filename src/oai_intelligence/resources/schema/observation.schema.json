@@ -27,11 +27,13 @@
     },
     "observation_id": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "SHA-256 fingerprint of source content and measured metadata; excludes observation and retrieval timestamps."
     },
     "source_record_id": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "Stable identity of the source record across repeated observations."
     },
     "source": {
       "type": "object",

@@ -7,7 +7,13 @@ import pytest
 from oai_intelligence.reports import generate_trend_report, load_observations, render_trend_report
 
 
-def observation(day, architecture="microservices", source="github", ecosystem="java", source_record_id=None):
+def observation(
+    day,
+    architecture="microservices",
+    source="github",
+    ecosystem="java",
+    source_record_id=None,
+):
     return {
         "schema_version": 1,
         "observation_id": f"{source}:{day}:{architecture}",

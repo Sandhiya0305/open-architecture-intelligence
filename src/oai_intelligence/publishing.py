@@ -23,11 +23,16 @@ def _git(repo_path: Path, *args: str, env: dict[str, str] | None = None) -> str:
     if env:
         process_env.update(env)
     result = subprocess.run(
-        ["git", *args], cwd=repo_path, env=process_env,
-        check=False, capture_output=True, text=True,
+        ["git", *args],
+        cwd=repo_path,
+        env=process_env,
+        check=False,
+        capture_output=True,
+        text=True,
     )
     if result.returncode:
-        raise PublishingError(result.stderr.strip() or result.stdout.strip() or "Git command failed.")
+        message = result.stderr.strip() or result.stdout.strip() or "Git command failed."
+        raise PublishingError(message)
     return result.stdout.strip()
 
 
@@ -49,7 +54,9 @@ def _github_request(url: str, token: str, payload: dict[str, Any]) -> dict[str, 
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:1000]
-        raise PublishingError(f"GitHub rejected pull request creation ({exc.code}): {detail}") from exc
+        raise PublishingError(
+            f"GitHub rejected pull request creation ({exc.code}): {detail}"
+        ) from exc
     except (urllib.error.URLError, TimeoutError) as exc:
         raise PublishingError(f"Could not reach GitHub to create pull request: {exc}") from exc
 
@@ -72,17 +79,23 @@ def publish_knowledge_candidates(
         raise PublishingError(f"Knowledge candidate bundle not found: {bundle_path}")
     content = bundle_path.read_text(encoding="utf-8")
     required_markers = (
-        "Evidence status: UNVERIFIED", "Human approval", "- Claim ID:",
-        "- Human review:", "- Source: [",
+        "Evidence status: UNVERIFIED",
+        "Human approval",
+        "- Claim ID:",
+        "- Human review:",
+        "- Source: [",
     )
     if any(marker not in content for marker in required_markers):
         raise PublishingError(
-            "Bundle is empty or missing mandatory source, claim-ID, human-review, or unverified safeguards."
+            "Bundle is empty or missing mandatory source, claim-ID, human-review, "
+            "or unverified safeguards."
         )
     if not repo_path.is_dir() or not (repo_path / ".git").exists():
         raise PublishingError(f"Not a Git repository: {repo_path}")
     if _git(repo_path, "status", "--porcelain"):
-        raise PublishingError("Knowledge repository has uncommitted changes. Commit or stash them first.")
+        raise PublishingError(
+            "Knowledge repository has uncommitted changes. Commit or stash them first."
+        )
     remote = _git(repo_path, "remote", "get-url", "origin").lower().removesuffix(".git")
     allowed_remotes = {
         "https://" + EXPECTED_REMOTE.lower(),
@@ -110,7 +123,9 @@ def publish_knowledge_candidates(
     try:
         _git(repo_path, "switch", "--create", branch, f"origin/{base_branch}")
         if target.exists():
-            raise PublishingError(f"Refusing to overwrite existing knowledge candidate file: {target}")
+            raise PublishingError(
+                f"Refusing to overwrite existing knowledge candidate file: {target}"
+            )
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
         index_text = (
@@ -126,14 +141,24 @@ def publish_knowledge_candidates(
         if entry not in index_text:
             index_path.write_text(index_text.rstrip() + "\n\n" + entry + "\n", encoding="utf-8")
         _git(
-            repo_path, "add",
+            repo_path,
+            "add",
             str(target.relative_to(repo_path)),
             str(index_path.relative_to(repo_path)),
         )
-        _git(repo_path, "commit", "-m", f"docs: propose reviewed architecture candidates {as_of.isoformat()}")
+        _git(
+            repo_path,
+            "commit",
+            "-m",
+            f"docs: propose reviewed architecture candidates {as_of.isoformat()}",
+        )
         auth = base64.b64encode(f"x-access-token:{token}".encode()).decode("ascii")
         _git(
-            repo_path, "push", "--set-upstream", "origin", branch,
+            repo_path,
+            "push",
+            "--set-upstream",
+            "origin",
+            branch,
             env={
                 "GIT_CONFIG_COUNT": "1",
                 "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
@@ -153,7 +178,8 @@ def publish_knowledge_candidates(
             "Proposes source-linked architecture claim candidates that received an explicit human "
             "editorial approval in Open Architecture Intelligence.\n\n"
             "## Evidence safeguards\n\n"
-            "- Every candidate remains **UNVERIFIED**. Editorial approval is not scientific verification.\n"
+            "- Every candidate remains **UNVERIFIED**. "
+            "Editorial approval is not scientific verification.\n"
             "- Original source links and observation IDs are retained.\n"
             "- No performance comparison or causal conclusion is inferred.\n"
             "- This pull request requires human review and must not be auto-merged.\n"

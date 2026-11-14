@@ -33,6 +33,11 @@ _CLAIM_PATTERNS = {
         r"prefer(?:red|s)?)\b",
         re.IGNORECASE,
     ),
+    "performance": re.compile(
+        r"\b(benchmark|p95|p99|latency|throughput|requests? per second|rps|"
+        r"load test|response time|memory usage|cpu usage|faster|slower)\b",
+        re.IGNORECASE,
+    ),
 }
 _CONTEXT_TERMS = re.compile(
     r"\b(by|because|due to|through|compared with|compared to|versus|"
@@ -224,18 +229,20 @@ def generate_claim_review_queue(
         f"Candidate claims: **{len(queue)}**",
         "",
         (
-            "All items are unverified review leads. Extraction does not establish truth, causality, "
-            + "independent corroboration, or source credibility."
+            "All items are unverified review leads. Extraction does not establish truth, "
+            "causality, independent corroboration, or source credibility."
         ),
         "",
     ]
     for index, item in enumerate(queue, start=1):
+        publisher = escape_markdown(item.get("publisher", "Unspecified publisher"))
+        publisher_type = item.get("publisher_type", "unspecified")
         lines.extend(
             [
                 f"## {index}. {escape_markdown(item['claim_text'])}",
                 "",
                 f"- Type: {', '.join(item['claim_kinds'])}",
-                f"- Publisher: {escape_markdown(item.get('publisher', 'Unspecified publisher'))} ({item.get('publisher_type', 'unspecified')})",
+                f"- Publisher: {publisher} ({publisher_type})",
                 f"- Architecture: {', '.join(item['architecture_ids']) or 'Unclassified'}",
                 f"- Source: [{escape_markdown(item['source_title'])}](<{item['source_url']}>)",
                 f"- Observation: `{item['observation_id']}`",

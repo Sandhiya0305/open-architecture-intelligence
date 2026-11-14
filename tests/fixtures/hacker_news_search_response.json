@@ -1,0 +1,23 @@
+{
+  "hits": [
+    {
+      "objectID": "50182117",
+      "title": "Rethinking OpenTelemetry Tail-Based Sampling with Event-Driven Architecture",
+      "url": "https://stephen-tsoi.gitbook.io/stephen-tsoi-docs/rethinking-opentelemetry-tail-sampling/8.-advanced-tail-based-sampling-solution-by-eda-design",
+      "story_text": null,
+      "created_at": "2026-10-21T14:56:16Z",
+      "author": "stephentsoi",
+      "points": 2,
+      "num_comments": 0,
+      "_tags": [
+        "story",
+        "author_stephentsoi",
+        "story_50182117"
+      ]
+    }
+  ],
+  "nbHits": 223,
+  "page": 0,
+  "hitsPerPage": 1,
+  "query": "event-driven architecture"
+}

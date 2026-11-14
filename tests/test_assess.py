@@ -7,11 +7,16 @@ from oai_intelligence.config import load_yaml
 from oai_intelligence.models import article_observation
 from oai_intelligence.validation import validate_observation
 
+ARCHITECTURE_STATEMENT = (
+    "The microservices architecture improved deployment coordination "
+    "because service ownership was clearer."
+)
+
 
 def record(
     observation_id: str,
     domain: str,
-    claim: str = "The microservices architecture improved request latency by 20 percent.",
+    claim: str = ARCHITECTURE_STATEMENT,
     claim_type: str = "performance_claim",
     evidence_details=None,
 ):
@@ -74,7 +79,7 @@ def test_complete_benchmark_is_only_ready_for_human_review():
 
 
 def test_exact_architecture_statement_on_different_hosts_is_only_a_review_lead():
-    statement = "The microservices architecture improved request latency by 20 percent."
+    statement = ARCHITECTURE_STATEMENT
     records = [
         record(
             "a", "publisher-one.example", claim=statement, claim_type="architecture_description"
@@ -91,7 +96,7 @@ def test_exact_architecture_statement_on_different_hosts_is_only_a_review_lead()
 
 
 def test_same_host_does_not_count_as_cross_host_match():
-    statement = "The microservices architecture improved request latency by 20 percent."
+    statement = ARCHITECTURE_STATEMENT
     records = [
         record("a", "same.example", claim=statement, claim_type="architecture_description"),
         record("b", "same.example", claim=statement, claim_type="architecture_description"),
@@ -107,7 +112,7 @@ def test_different_claims_do_not_match():
         record(
             "a",
             "publisher-one.example",
-            claim="The microservices architecture improved request latency by 20 percent.",
+            claim=ARCHITECTURE_STATEMENT,
         ),
         record(
             "b",
@@ -196,16 +201,45 @@ def test_rss_performance_language_enters_benchmark_methodology_assessment():
     taxonomy = load_yaml(Path(__file__).parents[1] / "config" / "architecture_taxonomy.yaml")
     article = {
         "url": "https://example.org/benchmark",
-        "title": "Microservices benchmark",
+        "title": "Microservices architecture benchmark",
         "feed_id": "infoq_architecture",
+        "entry_id": "benchmark-1",
         "publisher": "InfoQ Architecture & Design",
         "publisher_type": "editorial",
-        "summary": "A benchmark measured p95 latency at 42 ms under the documented workload.",
+        "summary": (
+            "The microservices architecture reduced p95 latency by 20 percent "
+            "under a documented workload."
+        ),
     }
     observation = article_observation(article, taxonomy)
 
     assessment = assess_observations([observation])[0]
 
+    assert assessment["claim_type"] == "performance_claim"
     assert assessment["disposition"] == "benchmark_incomplete"
     assert "methodology" in assessment["benchmark"]["missing_fields"]
     assert assessment["original_evidence_status"] == "unverified"
+
+
+def test_unrelated_performance_word_does_not_reclassify_a_nonperformance_statement():
+    taxonomy = load_yaml(Path(__file__).parents[1] / "config" / "architecture_taxonomy.yaml")
+    article = {
+        "url": "https://martinfowler.com/articles/example.html",
+        "title": "Why developers adopted microservices",
+        "feed_id": "martin_fowler",
+        "entry_id": "adoption-1",
+        "publisher": "Martin Fowler",
+        "publisher_type": "practitioner",
+        "summary": (
+            "Our developers adopted microservices early because they helped us "
+            "build the software right. This article also discusses performance "
+            "as a separate engineering concern."
+        ),
+    }
+    observation = article_observation(article, taxonomy)
+
+    assessment = assess_observations([observation])[0]
+
+    assert assessment["claim_type"] == "discovery_candidate"
+    assert assessment["disposition"] == "unverified_extracted_statement"
+    assert assessment["benchmark"]["applicable"] is False

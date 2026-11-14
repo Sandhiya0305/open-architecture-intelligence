@@ -1,0 +1,72 @@
+[
+  {
+    "name": "orders-service",
+    "description": "Reference application demonstrating microservices architecture and service discovery.",
+    "topics": [],
+    "expected": [
+      "microservices"
+    ]
+  },
+  {
+    "name": "inventory",
+    "description": "A modular monolith application with explicit module boundaries.",
+    "topics": [],
+    "expected": [
+      "modular-monolith"
+    ]
+  },
+  {
+    "name": "web-store",
+    "description": "Layered architecture separates presentation, domain and persistence responsibilities.",
+    "topics": [],
+    "expected": [
+      "layered"
+    ]
+  },
+  {
+    "name": "accounting-api",
+    "description": "Clean Architecture implemented with ports and adapters around domain policy.",
+    "topics": [],
+    "expected": [
+      "clean-architecture"
+    ]
+  },
+  {
+    "name": "orders-events",
+    "description": "Event-driven architecture uses a message broker to publish domain events.",
+    "topics": [],
+    "expected": [
+      "event-driven"
+    ]
+  },
+  {
+    "name": "microservices-wallpaper",
+    "description": "Desktop wallpaper images and icons for a development workstation.",
+    "topics": [],
+    "expected": []
+  },
+  {
+    "name": "layered-cake",
+    "description": "A recipe collection for layered cakes and desserts.",
+    "topics": [],
+    "expected": []
+  },
+  {
+    "name": "event-driven-animation",
+    "description": "Animated transitions for a game interface and sprite sheet.",
+    "topics": [],
+    "expected": []
+  },
+  {
+    "name": "clean-architecture-book-notes",
+    "description": "Reading notes, highlights and a book summary.",
+    "topics": [],
+    "expected": []
+  },
+  {
+    "name": "modular-monolith-costume",
+    "description": "A Halloween costume build log with modular foam pieces.",
+    "topics": [],
+    "expected": []
+  }
+]

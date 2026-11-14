@@ -6,23 +6,37 @@ from oai_intelligence.cli import build_parser, main
 def test_review_command_requires_source_checked_attestation():
     parser = build_parser()
     with pytest.raises(SystemExit) as error:
-        parser.parse_args([
-            "claims", "review", "a" * 64,
-            "--decision", "approve",
-            "--reviewer", "reviewer",
-            "--note", "Checked the source.",
-        ])
+        parser.parse_args(
+            [
+                "claims",
+                "review",
+                "a" * 64,
+                "--decision",
+                "approve",
+                "--reviewer",
+                "reviewer",
+                "--note",
+                "Checked the source.",
+            ]
+        )
     assert error.value.code == 2
 
 
 def test_review_command_accepts_explicit_source_checked_attestation():
-    args = build_parser().parse_args([
-        "claims", "review", "a" * 64,
-        "--decision", "approve",
-        "--reviewer", "reviewer",
-        "--note", "Checked the source.",
-        "--source-checked",
-    ])
+    args = build_parser().parse_args(
+        [
+            "claims",
+            "review",
+            "a" * 64,
+            "--decision",
+            "approve",
+            "--reviewer",
+            "reviewer",
+            "--note",
+            "Checked the source.",
+            "--source-checked",
+        ]
+    )
     assert args.source_checked is True
 
 

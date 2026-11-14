@@ -221,7 +221,10 @@ def test_regenerated_claim_queue_reflects_latest_human_decision(tmp_path: Path):
             "title": "Architecture report",
             "publisher": "Example Engineering",
             "publisher_type": "editorial",
-            "content_excerpt": "The microservices architecture improved independent deployment speed across product teams by reducing release coordination.",
+            "content_excerpt": (
+                "The microservices architecture improved independent deployment speed "
+                "across product teams by reducing release coordination."
+            ),
             "published_at": None,
             "retrieved_at": "2026-11-13T00:00:00Z",
         },

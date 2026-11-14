@@ -8,10 +8,15 @@ from oai_intelligence.claims import (
     generate_claim_review_queue,
 )
 
+CLAIM_SENTENCE = (
+    "The microservices architecture improved independent deployment speed "
+    "across product teams by reducing release coordination."
+)
+
 
 def observation(
     observation_id="obs-1",
-    excerpt="The microservices architecture improved independent deployment speed across product teams by reducing release coordination.",
+    excerpt=CLAIM_SENTENCE,
     source_id="rss",
     source_type="article",
 ):
@@ -55,7 +60,7 @@ def test_extracts_architecture_specific_sentence_with_source_provenance():
 
 
 def test_excludes_repository_descriptions_and_discussion_posts():
-    sentence = "The microservices architecture improved independent deployment speed across product teams by reducing release coordination."
+    sentence = CLAIM_SENTENCE
     assert (
         extract_claim_candidates(
             observation(source_id="github", source_type="repository", excerpt=sentence)
@@ -81,7 +86,10 @@ def test_does_not_infer_claim_from_metadata_or_non_architecture_sentence():
 
 def test_strips_html_and_entities_before_extraction():
     item = observation(
-        excerpt="<p>The microservices architecture improved independent deployment speed by reducing coordination across product teams&#x27; services.</p>"
+        excerpt=(
+            "<p>The microservices architecture improved independent deployment speed "
+            "by reducing coordination across product teams&#x27; services.</p>"
+        )
     )
     claims = extract_claim_candidates(item)
     assert len(claims) == 1
@@ -91,14 +99,12 @@ def test_strips_html_and_entities_before_extraction():
 
 
 def test_rejects_truncated_sentence():
-    item = observation(
-        excerpt="The microservices architecture improved independent deployment speed across product teams by reducing release coordination..."
-    )
+    item = observation(excerpt=CLAIM_SENTENCE[:-1] + "...")
     assert extract_claim_candidates(item) == []
 
 
 def test_repeated_observations_from_same_source_are_collapsed():
-    sentence = "The microservices architecture improved independent deployment speed across product teams by reducing release coordination."
+    sentence = CLAIM_SENTENCE
     first = observation("day-one", sentence)
     second = observation("day-two", sentence)
     second["source_record_id"] = first["source_record_id"]
@@ -111,7 +117,7 @@ def test_repeated_observations_from_same_source_are_collapsed():
 
 
 def test_same_claim_from_different_sources_is_flagged_for_independence_review():
-    sentence = "The microservices architecture improved independent deployment speed across product teams by reducing release coordination."
+    sentence = CLAIM_SENTENCE
     first = observation("one", sentence)
     second = observation("two", sentence)
     queue = build_review_queue([first, second])
