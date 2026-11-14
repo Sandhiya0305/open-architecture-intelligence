@@ -23,6 +23,9 @@ def _matches(text: str, term: str) -> bool:
     return f" {needle} " in f" {haystack} "
 
 
+MAX_ARTICLE_EXCERPT_CHARS = 1200
+
+
 _ARCHITECTURE_CONTEXT = (
     "software",
     "system",
@@ -244,7 +247,7 @@ def article_observation(
             "title": title,
             "publisher": publisher,
             "publisher_type": str(article.get("publisher_type") or "unspecified"),
-            "content_excerpt": str(article.get("summary") or "")[:4000],
+            "content_excerpt": str(article.get("summary") or "")[:MAX_ARTICLE_EXCERPT_CHARS],
             "published_at": article.get("published_at"),
             "retrieved_at": timestamp,
         },

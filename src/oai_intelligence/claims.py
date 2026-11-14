@@ -45,6 +45,9 @@ _CONTEXT_TERMS = re.compile(
     r"which (?:reduced|increased|improved|introduced|required))\b",
     re.IGNORECASE,
 )
+_VAGUE_LIST_PHRASES = re.compile(
+    r"\b(and many others|and many more|among others|etc\.?)\b", re.IGNORECASE
+)
 _ARCHITECTURE_TERMS = re.compile(
     r"\b(architecture|architectural|microservices?|monolith(?:ic)?|"
     r"event[- ]driven|layered|hexagonal|clean architecture|modular|"
@@ -110,7 +113,7 @@ def extract_claim_candidates(observation: ObservationRecord) -> list[ClaimCandid
             continue
         if not sentence.endswith((".", "!", "?")) or sentence.endswith("..."):
             continue
-        if not _ARCHITECTURE_TERMS.search(sentence):
+        if not _ARCHITECTURE_TERMS.search(sentence) or _VAGUE_LIST_PHRASES.search(sentence):
             continue
         matched = [kind for kind, pattern in _CLAIM_PATTERNS.items() if pattern.search(sentence)]
         if not matched or not _CONTEXT_TERMS.search(sentence):

@@ -77,6 +77,25 @@ def test_fetches_and_parses_atom_entries() -> None:
     assert items[0]["url"] == "https://example.com/events"
     assert items[0]["author"] == "Example Author"
     assert items[0]["published_at"] == "2026-11-12T11:00:00Z"
+    assert items[0]["summary"] == "Event processing patterns."
+
+
+def test_does_not_treat_full_atom_content_as_a_summary() -> None:
+    xml = ATOM_XML.replace(
+        b"<summary>Event processing patterns.</summary>",
+        b'<content type="html"><![CDATA['
+        b"<p>Full article text about event-driven architecture.</p>"
+        b"]]></content>",
+    )
+    collector = RSSCollector(user_agent="OAI-tests")
+    with patch(
+        "oai_intelligence.collectors.rss.urlopen",
+        side_effect=[io.BytesIO(ROBOTS_ALLOW), io.BytesIO(xml)],
+    ):
+        items = collector.fetch_feed({"id": "atom", "url": "https://example.com/feed.atom"})
+
+    assert len(items) == 1
+    assert items[0]["summary"] == ""
 
 
 def test_robots_disallow_prevents_feed_request() -> None:

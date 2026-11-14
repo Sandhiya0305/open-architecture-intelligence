@@ -117,6 +117,11 @@ def test_article_summary_enrichment_creates_a_new_snapshot_id() -> None:
         ),
     }
     second = article_observation(enriched, taxonomy)
+    assert first["source"]["publisher_type"] == "editorial"
+    assert len(first["source"]["content_excerpt"]) <= 1200
+    long_article = {**article, "summary": "A" * 1500}
+    bounded = article_observation(long_article, taxonomy)
+    assert len(bounded["source"]["content_excerpt"]) == 1200
     assert first["source_record_id"] == second["source_record_id"]
     assert first["observation_id"] != second["observation_id"]
 

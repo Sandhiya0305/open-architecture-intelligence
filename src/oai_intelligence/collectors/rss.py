@@ -199,7 +199,8 @@ class RSSCollector:
             link = _entry_link(entry)
             if not title or not link.startswith("https://"):
                 continue
-            summary = _child_text(entry, {"summary", "description", "encoded", "content"})
+            # Atom content and RSS content:encoded commonly contain full articles, not summaries.
+            summary = _child_text(entry, {"summary", "description"})
             author = _child_text(entry, {"creator", "author", "name"})
             published = _child_text(entry, {"published", "updated", "pubdate", "date"})
             guid = _child_text(entry, {"guid", "id"}) or link

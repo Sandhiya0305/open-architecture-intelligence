@@ -170,6 +170,18 @@ def test_daily_queue_contains_only_first_seen_claims_for_that_date(tmp_path: Pat
     assert queue[0]["source_record_id"] == "rss:feed:new-article"
 
 
+def test_rejects_vague_architecture_name_in_a_generic_list() -> None:
+    item = observation(
+        excerpt=(
+            "Our developers adopted, championed or invented some of the first versions of "
+            "continuous integration, pairing, automated testing, continuous delivery, "
+            "microservices and many others early because they helped us build the software right."
+        )
+    )
+
+    assert extract_claim_candidates(item) == []
+
+
 def test_vendor_marketing_source_is_not_promoted_to_claim_queue():
     item = observation()
     item["source"]["publisher"] = "Vendor Engineering Blog"
