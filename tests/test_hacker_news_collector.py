@@ -62,3 +62,14 @@ def test_invalid_search_payload_is_rejected() -> None:
         pytest.raises(HackerNewsCollectorError, match="hits list"),
     ):
         collector.search_stories("python")
+
+
+
+def test_response_size_is_bounded() -> None:
+    response = io.BytesIO(b"x" * 11)
+    collector = HackerNewsCollector(user_agent="OAI-tests", max_response_bytes=10)
+    with (
+        patch("oai_intelligence.collectors.hacker_news.urlopen", return_value=response),
+        pytest.raises(HackerNewsCollectorError, match="byte limit"),
+    ):
+        collector.search_stories("python")

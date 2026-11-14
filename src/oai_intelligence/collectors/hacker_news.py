@@ -7,6 +7,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+MAX_RESPONSE_BYTES = 5 * 1024 * 1024
+
 
 class HackerNewsCollectorError(RuntimeError):
     """Raised when Hacker News search cannot provide a valid response."""
@@ -16,11 +18,18 @@ class HackerNewsCollector:
     API_ROOT = "https://hn.algolia.com/api/v1"
 
     def __init__(
-        self, user_agent: str, timeout: float = 20.0, max_attempts: int = 3
+        self,
+        user_agent: str,
+        timeout: float = 20.0,
+        max_attempts: int = 3,
+        max_response_bytes: int = MAX_RESPONSE_BYTES,
     ) -> None:
+        if max_response_bytes < 1:
+            raise ValueError("max_response_bytes must be positive.")
         self.user_agent = user_agent
         self.timeout = timeout
         self.max_attempts = max_attempts
+        self.max_response_bytes = max_response_bytes
 
     def search_stories(self, query: str, limit: int = 10) -> list[dict[str, Any]]:
         if not 1 <= limit <= 100:
@@ -35,7 +44,12 @@ class HackerNewsCollector:
         for attempt in range(1, self.max_attempts + 1):
             try:
                 with urlopen(request, timeout=self.timeout) as response:
-                    payload = json.load(response)
+                    payload_bytes = response.read(self.max_response_bytes + 1)
+                if len(payload_bytes) > self.max_response_bytes:
+                    raise HackerNewsCollectorError(
+                        f"Hacker News response exceeded the {self.max_response_bytes}-byte limit."
+                    )
+                payload = json.loads(payload_bytes)
                 break
             except HTTPError as exc:
                 if exc.code not in {429, 500, 502, 503, 504} or attempt == self.max_attempts:
@@ -50,7 +64,7 @@ class HackerNewsCollector:
                         f"{self.max_attempts} attempts: {exc}"
                     ) from exc
                 time.sleep(attempt)
-            except json.JSONDecodeError as exc:
+            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
                 raise HackerNewsCollectorError(
                     f"Hacker News search API returned invalid JSON: {exc}"
                 ) from exc

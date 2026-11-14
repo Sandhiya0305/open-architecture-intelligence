@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [{ name = "Sandhiya0305" }]
-dependencies = ["PyYAML>=6.0", "jsonschema[format]>=4.22"]
+dependencies = ["PyYAML>=6.0", "jsonschema[format]>=4.22", "defusedxml>=0.7.1"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]

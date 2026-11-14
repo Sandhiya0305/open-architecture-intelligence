@@ -35,3 +35,14 @@ def test_invalid_api_payload_is_rejected() -> None:
         pytest.raises(GitHubCollectorError, match="items list"),
     ):
         collector.search_repositories("python")
+
+
+
+def test_response_size_is_bounded() -> None:
+    response = io.BytesIO(b"x" * 11)
+    collector = GitHubCollector(user_agent="OAI-tests", max_response_bytes=10)
+    with (
+        patch("oai_intelligence.collectors.github.urlopen", return_value=response),
+        pytest.raises(GitHubCollectorError, match="byte limit"),
+    ):
+        collector.search_repositories("python")

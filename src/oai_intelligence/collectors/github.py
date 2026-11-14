@@ -7,6 +7,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+MAX_RESPONSE_BYTES = 5 * 1024 * 1024
+
 
 class GitHubCollectorError(RuntimeError):
     """Raised when GitHub cannot provide a valid discovery response."""
@@ -20,10 +22,14 @@ class GitHubCollector:
         user_agent: str,
         token: str | None = None,
         timeout: float = 20.0,
+        max_response_bytes: int = MAX_RESPONSE_BYTES,
     ) -> None:
+        if max_response_bytes < 1:
+            raise ValueError("max_response_bytes must be positive.")
         self.user_agent = user_agent
         self.token = token or os.getenv("GITHUB_TOKEN")
         self.timeout = timeout
+        self.max_response_bytes = max_response_bytes
 
     def search_repositories(self, query: str, limit: int = 10) -> list[dict[str, Any]]:
         if not 1 <= limit <= 100:
@@ -37,7 +43,12 @@ class GitHubCollector:
         )
         try:
             with urlopen(request, timeout=self.timeout) as response:
-                payload = json.load(response)
+                payload_bytes = response.read(self.max_response_bytes + 1)
+            if len(payload_bytes) > self.max_response_bytes:
+                raise GitHubCollectorError(
+                    f"GitHub response exceeded the {self.max_response_bytes}-byte limit."
+                )
+            payload = json.loads(payload_bytes)
         except HTTPError as exc:
             if exc.code in {403, 429}:
                 reset = exc.headers.get("X-RateLimit-Reset", "unknown")
@@ -48,7 +59,7 @@ class GitHubCollector:
             raise GitHubCollectorError(f"GitHub API returned HTTP {exc.code}.") from exc
         except (URLError, TimeoutError) as exc:
             raise GitHubCollectorError(f"Could not reach GitHub API: {exc}") from exc
-        except (json.JSONDecodeError, OSError) as exc:
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
             raise GitHubCollectorError(f"GitHub returned an invalid response: {exc}") from exc
 
         items = payload.get("items") if isinstance(payload, dict) else None

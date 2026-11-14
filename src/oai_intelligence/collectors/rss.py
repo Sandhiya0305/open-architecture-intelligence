@@ -1,23 +1,31 @@
-"""RSS and Atom feed collection using Python's standard library."""
+"""RSS and Atom discovery with bounded responses and robots.txt enforcement."""
 
 import time
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as StdET
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from html import unescape
 from html.parser import HTMLParser
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
+from urllib.robotparser import RobotFileParser
+
+from defusedxml import ElementTree as ET
+from defusedxml.common import DefusedXmlException
+
+MAX_FEED_BYTES = 2 * 1024 * 1024
+MAX_ROBOTS_BYTES = 512 * 1024
 
 
 class RSSCollectorError(RuntimeError):
-    """Raised when a configured feed cannot be fetched or parsed."""
+    """Raised when a configured feed cannot be fetched or parsed safely."""
 
 
 class _TextExtractor(HTMLParser):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(convert_charrefs=True)
         self.parts: list[str] = []
 
     def handle_data(self, data: str) -> None:
@@ -31,7 +39,7 @@ def _local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1].split(":")[-1].casefold()
 
 
-def _child_text(element: ET.Element, names: set[str]) -> str:
+def _child_text(element: StdET.Element, names: set[str]) -> str:
     for child in element.iter():
         if child is element or _local_name(child.tag) not in names:
             continue
@@ -62,7 +70,7 @@ def _parse_date(value: str | None) -> str | None:
     return parsed.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
-def _entry_link(entry: ET.Element) -> str:
+def _entry_link(entry: StdET.Element) -> str:
     for child in entry:
         if _local_name(child.tag) != "link":
             continue
@@ -75,18 +83,74 @@ def _entry_link(entry: ET.Element) -> str:
 
 
 class RSSCollector:
-    def __init__(self, user_agent: str, timeout: float = 20.0, max_attempts: int = 3) -> None:
+    def __init__(
+        self,
+        user_agent: str,
+        timeout: float = 20.0,
+        max_attempts: int = 3,
+        max_response_bytes: int = MAX_FEED_BYTES,
+        max_robots_bytes: int = MAX_ROBOTS_BYTES,
+    ) -> None:
+        if max_response_bytes < 1 or max_robots_bytes < 1:
+            raise ValueError("Response size limits must be positive.")
+        if max_attempts < 1:
+            raise ValueError("max_attempts must be at least 1.")
         self.user_agent = user_agent
         self.timeout = timeout
         self.max_attempts = max_attempts
+        self.max_response_bytes = max_response_bytes
+        self.max_robots_bytes = max_robots_bytes
+        self._robots_cache: dict[str, RobotFileParser] = {}
+
+    def _robots_parser(self, feed_url: str) -> RobotFileParser:
+        parsed = urlsplit(feed_url)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        if origin in self._robots_cache:
+            return self._robots_cache[origin]
+
+        robots_url = f"{origin}/robots.txt"
+        request = Request(robots_url, headers={"User-Agent": self.user_agent})
+        try:
+            with urlopen(request, timeout=self.timeout) as response:
+                content = response.read(self.max_robots_bytes + 1)
+            if len(content) > self.max_robots_bytes:
+                raise RSSCollectorError(
+                    f"robots.txt for {origin} exceeded the {self.max_robots_bytes}-byte limit."
+                )
+            lines = content.decode("utf-8", errors="replace").splitlines()
+        except HTTPError as exc:
+            if exc.code == 404:
+                lines = []
+            elif exc.code in {401, 403} or 500 <= exc.code < 600:
+                lines = ["User-agent: *", "Disallow: /"]
+            elif 400 <= exc.code < 500:
+                lines = []
+            else:
+                raise RSSCollectorError(
+                    f"Could not read robots.txt for {origin}: HTTP {exc.code}."
+                ) from exc
+        except (URLError, TimeoutError, OSError) as exc:
+            raise RSSCollectorError(
+                f"Could not read robots.txt for {origin}; refusing to fetch the feed: {exc}"
+            ) from exc
+
+        parser = RobotFileParser(robots_url)
+        parser.parse(lines)
+        self._robots_cache[origin] = parser
+        return parser
 
     def fetch_feed(self, feed: dict[str, Any], limit: int = 20) -> list[dict[str, Any]]:
         if not 1 <= limit <= 100:
             raise ValueError("RSS feed limit must be between 1 and 100.")
         feed_id = str(feed.get("id") or "unknown")
         url = str(feed.get("url") or "")
-        if not url.startswith("https://"):
+        parsed = urlsplit(url)
+        if parsed.scheme != "https" or not parsed.hostname:
             raise ValueError(f"Feed {feed_id} must use an HTTPS URL.")
+
+        robots = self._robots_parser(url)
+        if not robots.can_fetch(self.user_agent, url):
+            raise RSSCollectorError(f"Feed {feed_id} is disallowed by robots.txt.")
 
         request = Request(
             url,
@@ -99,7 +163,11 @@ class RSSCollector:
         for attempt in range(1, self.max_attempts + 1):
             try:
                 with urlopen(request, timeout=self.timeout) as response:
-                    payload = response.read()
+                    payload = response.read(self.max_response_bytes + 1)
+                if len(payload) > self.max_response_bytes:
+                    raise RSSCollectorError(
+                        f"Feed {feed_id} exceeded the {self.max_response_bytes}-byte limit."
+                    )
                 break
             except HTTPError as exc:
                 if exc.code not in {429, 500, 502, 503, 504} or attempt == self.max_attempts:
@@ -116,8 +184,8 @@ class RSSCollector:
             raise RSSCollectorError(f"Feed {feed_id} returned no content.")
         try:
             root = ET.fromstring(payload)
-        except ET.ParseError as exc:
-            raise RSSCollectorError(f"Feed {feed_id} contains invalid XML: {exc}") from exc
+        except (StdET.ParseError, DefusedXmlException, ValueError) as exc:
+            raise RSSCollectorError(f"Feed {feed_id} contains invalid or unsafe XML: {exc}") from exc
 
         feed_title = _child_text(root, {"title"}) or str(feed.get("publisher") or feed_id)
         entries = [

@@ -1,9 +1,12 @@
 import io
 from unittest.mock import patch
+from urllib.error import URLError
 
 import pytest
 
 from oai_intelligence.collectors.rss import RSSCollector, RSSCollectorError
+
+ROBOTS_ALLOW = b"User-agent: *\nAllow: /\n"
 
 RSS_XML = b"""<?xml version="1.0"?>
 <rss version="2.0">
@@ -20,7 +23,6 @@ RSS_XML = b"""<?xml version="1.0"?>
   </channel>
 </rss>"""
 
-
 ATOM_XML = b"""<?xml version="1.0"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>Example Atom</title>
@@ -35,12 +37,12 @@ ATOM_XML = b"""<?xml version="1.0"?>
 </feed>"""
 
 
-def test_fetches_and_parses_rss_items() -> None:
+def test_fetches_and_parses_rss_items_and_checks_robots() -> None:
     collector = RSSCollector(user_agent="OAI-tests")
     feed = {"id": "example", "publisher": "Example Publisher", "url": "https://example.com/feed"}
     with patch(
         "oai_intelligence.collectors.rss.urlopen",
-        return_value=io.BytesIO(RSS_XML),
+        side_effect=[io.BytesIO(ROBOTS_ALLOW), io.BytesIO(RSS_XML)],
     ) as mocked:
         items = collector.fetch_feed(feed, limit=5)
 
@@ -50,7 +52,9 @@ def test_fetches_and_parses_rss_items() -> None:
     assert items[0]["published_at"] == "2026-11-12T10:00:00Z"
     assert "practical architecture article" in items[0]["summary"]
     assert items[0]["publisher"] == "Example Publisher"
-    assert mocked.call_args.args[0].get_header("User-agent") == "OAI-tests"
+    assert mocked.call_count == 2
+    assert mocked.call_args_list[0].args[0].full_url == "https://example.com/robots.txt"
+    assert mocked.call_args_list[0].args[0].get_header("User-agent") == "OAI-tests"
 
 
 def test_fetches_and_parses_atom_entries() -> None:
@@ -58,7 +62,7 @@ def test_fetches_and_parses_atom_entries() -> None:
     feed = {"id": "atom", "url": "https://example.com/feed.atom"}
     with patch(
         "oai_intelligence.collectors.rss.urlopen",
-        return_value=io.BytesIO(ATOM_XML),
+        side_effect=[io.BytesIO(ROBOTS_ALLOW), io.BytesIO(ATOM_XML)],
     ):
         items = collector.fetch_feed(feed)
 
@@ -68,16 +72,49 @@ def test_fetches_and_parses_atom_entries() -> None:
     assert items[0]["published_at"] == "2026-11-12T11:00:00Z"
 
 
+def test_robots_disallow_prevents_feed_request() -> None:
+    collector = RSSCollector(user_agent="OAI-tests")
+    robots = b"User-agent: *\nDisallow: /feed\n"
+    with (
+        patch("oai_intelligence.collectors.rss.urlopen", return_value=io.BytesIO(robots)) as mocked,
+        pytest.raises(RSSCollectorError, match="disallowed by robots.txt"),
+    ):
+        collector.fetch_feed({"id": "blocked", "url": "https://example.com/feed"})
+
+    assert mocked.call_count == 1
+
+
+def test_robots_network_failure_fails_closed() -> None:
+    collector = RSSCollector(user_agent="OAI-tests")
+    with (
+        patch("oai_intelligence.collectors.rss.urlopen", side_effect=URLError("offline")),
+        pytest.raises(RSSCollectorError, match="refusing to fetch"),
+    ):
+        collector.fetch_feed({"id": "offline", "url": "https://example.com/feed"})
+
+
 def test_invalid_xml_is_rejected() -> None:
     collector = RSSCollector(user_agent="OAI-tests")
     with (
         patch(
             "oai_intelligence.collectors.rss.urlopen",
-            return_value=io.BytesIO(b"<not-valid"),
+            side_effect=[io.BytesIO(ROBOTS_ALLOW), io.BytesIO(b"<not-valid")],
         ),
-        pytest.raises(RSSCollectorError, match="invalid XML"),
+        pytest.raises(RSSCollectorError, match="invalid or unsafe XML"),
     ):
         collector.fetch_feed({"id": "broken", "url": "https://example.com/feed"})
+
+
+def test_feed_response_size_is_bounded() -> None:
+    collector = RSSCollector(user_agent="OAI-tests", max_response_bytes=10)
+    with (
+        patch(
+            "oai_intelligence.collectors.rss.urlopen",
+            side_effect=[io.BytesIO(ROBOTS_ALLOW), io.BytesIO(RSS_XML)],
+        ),
+        pytest.raises(RSSCollectorError, match="byte limit"),
+    ):
+        collector.fetch_feed({"id": "large", "url": "https://example.com/feed"})
 
 
 def test_non_https_feed_is_rejected() -> None:
