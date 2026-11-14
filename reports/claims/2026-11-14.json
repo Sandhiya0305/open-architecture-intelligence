@@ -1,0 +1,705 @@
+[
+  {
+    "claim_id": "394fb17581c52caf7b0cfdd14d0c1baf7b542ea33ea39be881a2c1c6fa3e8fca",
+    "observation_id": "35af5f02a935a41c9d36de56a57c70a593c08eb228eaf3eeb5fe3f1955df0ff2",
+    "source_url": "https://github.com/kestra-io/kestra",
+    "source_title": "kestra-io/kestra",
+    "source_id": "github",
+    "architecture_ids": [
+      "event-driven"
+    ],
+    "claim_text": "Declarative YAML, event-driven, any language, Git-versioned, scalable to millions of executions.",
+    "claim_kinds": [
+      "benefit"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context.",
+    "normalized_claim": "declarative yaml event driven any language git versioned scalable to millions of executions",
+    "duplicate_observation_ids": [],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "95592cf5da0bcc6851cbdfd1c0f17d5a4644022274f9e2d25bc6dc62362129e2",
+    "observation_id": "a727cf042866c5e0f07980a474bbaf3bf31b101782025d9590f71135ddaaad00",
+    "source_url": "https://news.ycombinator.com/item?id=50165144",
+    "source_title": "Show HN: Proxium – Self-hosted HTTP/SOCKS5 proxy with a web admin UI",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "For that reason we decided to add a proxy in the first place, so",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "for that reason we decided to add a proxy in the first place so",
+    "duplicate_observation_ids": [
+      "51da69cb5849d6b7b5becf915f41cd922e6cb94b02428c86850293ea54f2e16e"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "f65dcd5ce5994074494b0e7c11cdf67c5313dc3c92aa56674b4b5f9623473ffe",
+    "observation_id": "a727cf042866c5e0f07980a474bbaf3bf31b101782025d9590f71135ddaaad00",
+    "source_url": "https://news.ycombinator.com/item?id=50165144",
+    "source_title": "Show HN: Proxium – Self-hosted HTTP/SOCKS5 proxy with a web admin UI",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "limits etc.<p>So I decided to create my own solution that works out of the box with 1 simple",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "limits etc p so i decided to create my own solution that works out of the box with 1 simple",
+    "duplicate_observation_ids": [
+      "51da69cb5849d6b7b5becf915f41cd922e6cb94b02428c86850293ea54f2e16e"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "b339b9e7625ac6c4cec7b2bdb3eadc093a8a136ab1afb136af4289593752aded",
+    "observation_id": "b713f6d6964ba86ef1b44e6ef089182df0785e459d7394a661152decf2c23cd2",
+    "source_url": "https://news.ycombinator.com/item?id=50162270",
+    "source_title": "Vibecoding an LLVM TypeScript Compiler",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "However, it wasn&#x27;t that great, so I switched to LLVM&#x27;s default C++.<p>I got a basic web API running with SQLite<p>I gave the agent a VPS to benchmark against Node, Bun, Golang with zero optimizations.<p>Benchmark: https:&#x2F;&#x2F;www.marina-lang.org&#x2F;benchmark (I was expecting it to perform worse, but it did better) [Benchmark Before C++ Migration]<p>Stack used",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "however it wasn x27 t that great so i switched to llvm x27 s default c p i got a basic web api running with sqlite p i gave the agent a vps to benchmark against node bun golang with zero optimizations p benchmark https x2f x2f www marina lang org x2f benchmark i was expecting it to perform worse but it did better benchmark before c migration p stack used",
+    "duplicate_observation_ids": [
+      "0b72f67499cfa4f5822898938b1a6489f45259632ecf26dc337c9cfd19187c0a"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "dfaecbedd68a5df1662e867d7371a12d2c92a18139aea3901716c70839b9ccdd",
+    "observation_id": "74bebe2446531602a195b56cc722c7cf17d22288df1f08f5f6cc27c3af62933b",
+    "source_url": "https://news.ycombinator.com/item?id=49104392",
+    "source_title": "How to get more coding productivity with LLMs",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "the ordering of the feature development, just like I would do myself, to minimize architecture risk, get the unknowns out of the way, feel the thing taking shape before the complexity layers in..Then build harnesses with as much AI visible iteration loop as is practical for the part we are working on.",
+    "claim_kinds": [
+      "limitation"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "the ordering of the feature development just like i would do myself to minimize architecture risk get the unknowns out of the way feel the thing taking shape before the complexity layers in then build harnesses with as much ai visible iteration loop as is practical for the part we are working on",
+    "duplicate_observation_ids": [
+      "d93c6460eb9458ba63b2f1c8cc8a588a3c9b249fa0b5fdf59a9b734903ed85d4"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "420cb589145ab13e53a8442f48c166b217b620f7f24447de470bbcd4fdc842a7",
+    "observation_id": "74bebe2446531602a195b56cc722c7cf17d22288df1f08f5f6cc27c3af62933b",
+    "source_url": "https://news.ycombinator.com/item?id=49104392",
+    "source_title": "How to get more coding productivity with LLMs",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "I use third-party oracle references when I can (like pixel correct font and shape tests against Skia, instead of just eyeballing) And I decide the level of detail where this is useful, then put the LLM in a place where it can succeed.<p>In short, it&#x27;s still me, building my software, my way.",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "i use third party oracle references when i can like pixel correct font and shape tests against skia instead of just eyeballing and i decide the level of detail where this is useful then put the llm in a place where it can succeed p in short it x27 s still me building my software my way",
+    "duplicate_observation_ids": [
+      "d93c6460eb9458ba63b2f1c8cc8a588a3c9b249fa0b5fdf59a9b734903ed85d4"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "579138231171960c9173d19d47649239f1e436324c8db055439520ea966b75d0",
+    "observation_id": "74bebe2446531602a195b56cc722c7cf17d22288df1f08f5f6cc27c3af62933b",
+    "source_url": "https://news.ycombinator.com/item?id=49104392",
+    "source_title": "How to get more coding productivity with LLMs",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "They can&#x27;t decide what software to build, why you should build it, what parts of the software to build for flexibility in the future vs practicality now.",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "they can x27 t decide what software to build why you should build it what parts of the software to build for flexibility in the future vs practicality now",
+    "duplicate_observation_ids": [
+      "d93c6460eb9458ba63b2f1c8cc8a588a3c9b249fa0b5fdf59a9b734903ed85d4"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "3f5fd89da24e3396e4240e83315d5726ae746d0a2c5e00c70930cc3ccf13b081",
+    "observation_id": "c6e51052c976be6574753696ec4b7ddca495def5b124cfd023a02c231285bd0d",
+    "source_url": "https://news.ycombinator.com/item?id=48490591",
+    "source_title": "Show HN: Brooks-Lint – AI code reviews grounded in 12 classic engineering books",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "Recalling concepts from books on software project management, code structure, and architecture—such as <i>The Mythical Man-Month</i>—I decided to codify these architectural principles into a reusable &quot;skill&quot; to optimize my project&#x27;s structure.",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "recalling concepts from books on software project management code structure and architecture such as i the mythical man month i i decided to codify these architectural principles into a reusable quot skill quot to optimize my project x27 s structure",
+    "duplicate_observation_ids": [
+      "d19864d392231a324715df6f801fccb6380a8d93c59915358f4749c61df686a8"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "6140497bcf2d3a4e655faaeaa05bad885e428a69ee4d1e4705a5ea17c91b363c",
+    "observation_id": "7906686a5a5b0abb015eab10e03d146c6a0858707bd70689f90af84c0c31dd84",
+    "source_url": "https://news.ycombinator.com/item?id=48383578",
+    "source_title": "I Replaced My AI Agent's Flat Fact Store with a Graph Database",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "A moderately relevant but critical fact scores higher than a highly relevant but ephemeral one.",
+    "claim_kinds": [
+      "benefit"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "a moderately relevant but critical fact scores higher than a highly relevant but ephemeral one",
+    "duplicate_observation_ids": [
+      "33730ec6516ca34f1d9b779fc2b3afef6e2afef46faa1c8002b310fe7593d69e"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "4092306b5a1f0cea92bfa2b5d5821100bcb79172b31f1f1bee490aa0d16d5672",
+    "observation_id": "7906686a5a5b0abb015eab10e03d146c6a0858707bd70689f90af84c0c31dd84",
+    "source_url": "https://news.ycombinator.com/item?id=48383578",
+    "source_title": "I Replaced My AI Agent's Flat Fact Store with a Graph Database",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "SUPERSEDES chain alone justified the migration.<p>Runs entirely on a Mac Mini.",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "supersedes chain alone justified the migration p runs entirely on a mac mini",
+    "duplicate_observation_ids": [
+      "33730ec6516ca34f1d9b779fc2b3afef6e2afef46faa1c8002b310fe7593d69e"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "e52bfdc09babe9a0244cf056696ba5321c0345a0d2802a76787524f286b98a2a",
+    "observation_id": "22b6187d409d75076ce161af0d1da965393b606d5fb66b7e1f74ec0f22767fab",
+    "source_url": "https://martinfowler.com/rachels-ramblings/good-devs-wary.html",
+    "source_title": "Why are good developers so wary of agentic development?",
+    "source_id": "rss",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "Our developers adopted, championed or invented some of the first versions of continuous integration, pairing, automated testing, continuous delivery, microservices and many others early because they helped us build the software right.",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "our developers adopted championed or invented some of the first versions of continuous integration pairing automated testing continuous delivery microservices and many others early because they helped us build the software right",
+    "duplicate_observation_ids": [
+      "918801d644a3f6cc6e8e868566626b2c0d99874c3c275f3723568d28d1d14efd"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "b368c52bc225d8e1f2e4d31bd5fad6a59aaaf4b6937ffbc2bbd2e1a1c834f7de",
+    "observation_id": "22b6187d409d75076ce161af0d1da965393b606d5fb66b7e1f74ec0f22767fab",
+    "source_url": "https://martinfowler.com/rachels-ramblings/good-devs-wary.html",
+    "source_title": "Why are good developers so wary of agentic development?",
+    "source_id": "rss",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "The tools have improved enormously, but experienced developers still have questions.",
+    "claim_kinds": [
+      "benefit"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "the tools have improved enormously but experienced developers still have questions",
+    "duplicate_observation_ids": [
+      "918801d644a3f6cc6e8e868566626b2c0d99874c3c275f3723568d28d1d14efd"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "6cc00e7455db8d395b7802841582f9fe68fe67fbc73918479a267197ac7162da",
+    "observation_id": "22b6187d409d75076ce161af0d1da965393b606d5fb66b7e1f74ec0f22767fab",
+    "source_url": "https://martinfowler.com/rachels-ramblings/good-devs-wary.html",
+    "source_title": "Why are good developers so wary of agentic development?",
+    "source_id": "rss",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "For the difficult questions, I still get more useful answers from the humans or maybe more insightful with very specific experience that helps me better understand the point.",
+    "claim_kinds": [
+      "limitation"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "for the difficult questions i still get more useful answers from the humans or maybe more insightful with very specific experience that helps me better understand the point",
+    "duplicate_observation_ids": [
+      "918801d644a3f6cc6e8e868566626b2c0d99874c3c275f3723568d28d1d14efd"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "9fddf1e2893e35482b67f66e0476801a10eaa93ee8fe413f02ff293a95d04d3e",
+    "observation_id": "22b6187d409d75076ce161af0d1da965393b606d5fb66b7e1f74ec0f22767fab",
+    "source_url": "https://martinfowler.com/rachels-ramblings/good-devs-wary.html",
+    "source_title": "Why are good developers so wary of agentic development?",
+    "source_id": "rss",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "They challenge the premise, recognise a pattern from something that went wrong ten years ago, or spot the organisational problem hiding inside the technical one.",
+    "claim_kinds": [
+      "limitation"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "they challenge the premise recognise a pattern from something that went wrong ten years ago or spot the organisational problem hiding inside the technical one",
+    "duplicate_observation_ids": [
+      "918801d644a3f6cc6e8e868566626b2c0d99874c3c275f3723568d28d1d14efd"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "1397c23fdfeeb413f6a497361345135a11ca88bf2fb0f9ca429f55fede829f31",
+    "observation_id": "45929c07092b93bc6cbae83d11bb54dd88881c9c1f17be80548ce583fab520a8",
+    "source_url": "https://github.com/i-am-rashmi/gigwork",
+    "source_title": "i-am-rashmi/gigwork",
+    "source_id": "github",
+    "architecture_ids": [
+      "event-driven"
+    ],
+    "claim_text": "Core challenge: notifying up to 30,000 matching artists within seconds of a gig being posted.",
+    "claim_kinds": [
+      "limitation"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context.",
+    "normalized_claim": "core challenge notifying up to 30 000 matching artists within seconds of a gig being posted",
+    "duplicate_observation_ids": [],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "e13e9b2fa79f36ecb8bce14698fdfbb97d557b46cccacee9ef554839d878a960",
+    "observation_id": "d4dc7b2d015c5357ec0147703d3711e0c5f516b1709ac8662cd3cc80ced1ebec",
+    "source_url": "https://news.ycombinator.com/item?id=50472340",
+    "source_title": "Show HN: Headwig - Run and test parallel AI agents without Git worktrees",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "Since agents came into my local SD workflow I had been facing a bottleneck.",
+    "claim_kinds": [
+      "limitation"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context.",
+    "normalized_claim": "since agents came into my local sd workflow i had been facing a bottleneck",
+    "duplicate_observation_ids": [],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "dfce2498c2d1d8ed412890eca9c747687ace3644ea8355e8d1021f49fa424950",
+    "observation_id": "d4dc7b2d015c5357ec0147703d3711e0c5f516b1709ac8662cd3cc80ced1ebec",
+    "source_url": "https://news.ycombinator.com/item?id=50472340",
+    "source_title": "Show HN: Headwig - Run and test parallel AI agents without Git worktrees",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "(Brain, storage &amp; memory overhead)<p>We all use Git worktrees to code in parallel.",
+    "claim_kinds": [
+      "limitation"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context.",
+    "normalized_claim": "brain storage amp memory overhead p we all use git worktrees to code in parallel",
+    "duplicate_observation_ids": [],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "bbd5082aea7e9d587b5edc909c910eead28e1a751948a77e1e99f01d933e3056",
+    "observation_id": "d4dc7b2d015c5357ec0147703d3711e0c5f516b1709ac8662cd3cc80ced1ebec",
+    "source_url": "https://news.ycombinator.com/item?id=50472340",
+    "source_title": "Show HN: Headwig - Run and test parallel AI agents without Git worktrees",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "How do you test different combinations?<p>I am building Headwig to help me with this.<p>It lets me run multiple agents on my app, isolate their changes across services, and test and iterate on each one independently, even while other agents are working, without the storage overhead of duplicating workspaces for every task.<p>I&#x27;ve been using it for my own webapp, and I want you guys to look at the workflow and see if it makes sense and give me any suggestions or feedback.",
+    "claim_kinds": [
+      "limitation"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context.",
+    "normalized_claim": "how do you test different combinations p i am building headwig to help me with this p it lets me run multiple agents on my app isolate their changes across services and test and iterate on each one independently even while other agents are working without the storage overhead of duplicating workspaces for every task p i x27 ve been using it for my own webapp and i want you guys to look at the workflow and see if it makes sense and give me any suggestions or feedback",
+    "duplicate_observation_ids": [],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "51cdd3aed5b6e3f5552446e2e0d960826566f0342a311490d5fef37cf86e733b",
+    "observation_id": "51da69cb5849d6b7b5becf915f41cd922e6cb94b02428c86850293ea54f2e16e",
+    "source_url": "https://news.ycombinator.com/item?id=50165144",
+    "source_title": "Show HN: Proxium – Self-hosted HTTP/SOCKS5 proxy with a web admin UI",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "For that reason we decided to add a proxy in the first place, so",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "for that reason we decided to add a proxy in the first place so",
+    "duplicate_observation_ids": [
+      "a727cf042866c5e0f07980a474bbaf3bf31b101782025d9590f71135ddaaad00"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "c83122536607eaddbec685e3720e3f37757a71cc2cda21aa5c340e792528b118",
+    "observation_id": "51da69cb5849d6b7b5becf915f41cd922e6cb94b02428c86850293ea54f2e16e",
+    "source_url": "https://news.ycombinator.com/item?id=50165144",
+    "source_title": "Show HN: Proxium – Self-hosted HTTP/SOCKS5 proxy with a web admin UI",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "limits etc.<p>So I decided to create my own solution that works out of the box with 1 simple",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "limits etc p so i decided to create my own solution that works out of the box with 1 simple",
+    "duplicate_observation_ids": [
+      "a727cf042866c5e0f07980a474bbaf3bf31b101782025d9590f71135ddaaad00"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "9f1864b71f370bfd95949066bc9146007e7e412df38448655150f61b86c155ae",
+    "observation_id": "0b72f67499cfa4f5822898938b1a6489f45259632ecf26dc337c9cfd19187c0a",
+    "source_url": "https://news.ycombinator.com/item?id=50162270",
+    "source_title": "Vibecoding an LLVM TypeScript Compiler",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "However, it wasn&#x27;t that great, so I switched to LLVM&#x27;s default C++.<p>I got a basic web API running with SQLite<p>I gave the agent a VPS to benchmark against Node, Bun, Golang with zero optimizations.<p>Benchmark: https:&#x2F;&#x2F;www.marina-lang.org&#x2F;benchmark (I was expecting it to perform worse, but it did better) [Benchmark Before C++ Migration]<p>Stack used",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "however it wasn x27 t that great so i switched to llvm x27 s default c p i got a basic web api running with sqlite p i gave the agent a vps to benchmark against node bun golang with zero optimizations p benchmark https x2f x2f www marina lang org x2f benchmark i was expecting it to perform worse but it did better benchmark before c migration p stack used",
+    "duplicate_observation_ids": [
+      "b713f6d6964ba86ef1b44e6ef089182df0785e459d7394a661152decf2c23cd2"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "3123dd6a21c3e4e138889e7758be98103891e844f93e7fe4246ebd01f7a1a592",
+    "observation_id": "d93c6460eb9458ba63b2f1c8cc8a588a3c9b249fa0b5fdf59a9b734903ed85d4",
+    "source_url": "https://news.ycombinator.com/item?id=49104392",
+    "source_title": "How to get more coding productivity with LLMs",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "the ordering of the feature development, just like I would do myself, to minimize architecture risk, get the unknowns out of the way, feel the thing taking shape before the complexity layers in..Then build harnesses with as much AI visible iteration loop as is practical for the part we are working on.",
+    "claim_kinds": [
+      "limitation"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "the ordering of the feature development just like i would do myself to minimize architecture risk get the unknowns out of the way feel the thing taking shape before the complexity layers in then build harnesses with as much ai visible iteration loop as is practical for the part we are working on",
+    "duplicate_observation_ids": [
+      "74bebe2446531602a195b56cc722c7cf17d22288df1f08f5f6cc27c3af62933b"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "eb674ee7f8089a6a0206b53826f3965de6d981a361d95edb28a9bf201a4ac6dc",
+    "observation_id": "d93c6460eb9458ba63b2f1c8cc8a588a3c9b249fa0b5fdf59a9b734903ed85d4",
+    "source_url": "https://news.ycombinator.com/item?id=49104392",
+    "source_title": "How to get more coding productivity with LLMs",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "I use third-party oracle references when I can (like pixel correct font and shape tests against Skia, instead of just eyeballing) And I decide the level of detail where this is useful, then put the LLM in a place where it can succeed.<p>In short, it&#x27;s still me, building my software, my way.",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "i use third party oracle references when i can like pixel correct font and shape tests against skia instead of just eyeballing and i decide the level of detail where this is useful then put the llm in a place where it can succeed p in short it x27 s still me building my software my way",
+    "duplicate_observation_ids": [
+      "74bebe2446531602a195b56cc722c7cf17d22288df1f08f5f6cc27c3af62933b"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "44713417a41016cc3a9bf9c774d910dc9c87dc6cf60bd4eaff324a3838ae50a5",
+    "observation_id": "d93c6460eb9458ba63b2f1c8cc8a588a3c9b249fa0b5fdf59a9b734903ed85d4",
+    "source_url": "https://news.ycombinator.com/item?id=49104392",
+    "source_title": "How to get more coding productivity with LLMs",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "They can&#x27;t decide what software to build, why you should build it, what parts of the software to build for flexibility in the future vs practicality now.",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "they can x27 t decide what software to build why you should build it what parts of the software to build for flexibility in the future vs practicality now",
+    "duplicate_observation_ids": [
+      "74bebe2446531602a195b56cc722c7cf17d22288df1f08f5f6cc27c3af62933b"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "d39a6c7af223d1c27c6ed5d0b4325aeb949b8f37eb8ccef72f0ae691b1acb544",
+    "observation_id": "d19864d392231a324715df6f801fccb6380a8d93c59915358f4749c61df686a8",
+    "source_url": "https://news.ycombinator.com/item?id=48490591",
+    "source_title": "Show HN: Brooks-Lint – AI code reviews grounded in 12 classic engineering books",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "Recalling concepts from books on software project management, code structure, and architecture—such as <i>The Mythical Man-Month</i>—I decided to codify these architectural principles into a reusable &quot;skill&quot; to optimize my project&#x27;s structure.",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "recalling concepts from books on software project management code structure and architecture such as i the mythical man month i i decided to codify these architectural principles into a reusable quot skill quot to optimize my project x27 s structure",
+    "duplicate_observation_ids": [
+      "c6e51052c976be6574753696ec4b7ddca495def5b124cfd023a02c231285bd0d"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "f0063cdb696ddf6d7b03adb15eeea599db22098ea22ad926ffb4dbb191d26608",
+    "observation_id": "33730ec6516ca34f1d9b779fc2b3afef6e2afef46faa1c8002b310fe7593d69e",
+    "source_url": "https://news.ycombinator.com/item?id=48383578",
+    "source_title": "I Replaced My AI Agent's Flat Fact Store with a Graph Database",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "A moderately relevant but critical fact scores higher than a highly relevant but ephemeral one.",
+    "claim_kinds": [
+      "benefit"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "a moderately relevant but critical fact scores higher than a highly relevant but ephemeral one",
+    "duplicate_observation_ids": [
+      "7906686a5a5b0abb015eab10e03d146c6a0858707bd70689f90af84c0c31dd84"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "38eda76de934946bf03e7a6a91964d8f7385a0d6f8ecc9bf0161b88f09680cb7",
+    "observation_id": "33730ec6516ca34f1d9b779fc2b3afef6e2afef46faa1c8002b310fe7593d69e",
+    "source_url": "https://news.ycombinator.com/item?id=48383578",
+    "source_title": "I Replaced My AI Agent's Flat Fact Store with a Graph Database",
+    "source_id": "hacker_news",
+    "architecture_ids": [
+      "layered"
+    ],
+    "claim_text": "SUPERSEDES chain alone justified the migration.<p>Runs entirely on a Mac Mini.",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "supersedes chain alone justified the migration p runs entirely on a mac mini",
+    "duplicate_observation_ids": [
+      "7906686a5a5b0abb015eab10e03d146c6a0858707bd70689f90af84c0c31dd84"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "767d53bc8aa14a231758eace5692bc5d6b6113287761d3cff069fec34d28ec40",
+    "observation_id": "918801d644a3f6cc6e8e868566626b2c0d99874c3c275f3723568d28d1d14efd",
+    "source_url": "https://martinfowler.com/rachels-ramblings/good-devs-wary.html",
+    "source_title": "Why are good developers so wary of agentic development?",
+    "source_id": "rss",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "Our developers adopted, championed or invented some of the first versions of continuous integration, pairing, automated testing, continuous delivery, microservices and many others early because they helped us build the software right.",
+    "claim_kinds": [
+      "decision"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "our developers adopted championed or invented some of the first versions of continuous integration pairing automated testing continuous delivery microservices and many others early because they helped us build the software right",
+    "duplicate_observation_ids": [
+      "22b6187d409d75076ce161af0d1da965393b606d5fb66b7e1f74ec0f22767fab"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "4efbd9ab3b0db9879a67ed8a1994f7c9e31d6cd05cadbfe604b4935447fe91ee",
+    "observation_id": "918801d644a3f6cc6e8e868566626b2c0d99874c3c275f3723568d28d1d14efd",
+    "source_url": "https://martinfowler.com/rachels-ramblings/good-devs-wary.html",
+    "source_title": "Why are good developers so wary of agentic development?",
+    "source_id": "rss",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "The tools have improved enormously, but experienced developers still have questions.",
+    "claim_kinds": [
+      "benefit"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "the tools have improved enormously but experienced developers still have questions",
+    "duplicate_observation_ids": [
+      "22b6187d409d75076ce161af0d1da965393b606d5fb66b7e1f74ec0f22767fab"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "626bfc76ca13e6eb25afbf673559a3ddfc15903e96420fe774ead6b7fd6f6f94",
+    "observation_id": "918801d644a3f6cc6e8e868566626b2c0d99874c3c275f3723568d28d1d14efd",
+    "source_url": "https://martinfowler.com/rachels-ramblings/good-devs-wary.html",
+    "source_title": "Why are good developers so wary of agentic development?",
+    "source_id": "rss",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "For the difficult questions, I still get more useful answers from the humans or maybe more insightful with very specific experience that helps me better understand the point.",
+    "claim_kinds": [
+      "limitation"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "for the difficult questions i still get more useful answers from the humans or maybe more insightful with very specific experience that helps me better understand the point",
+    "duplicate_observation_ids": [
+      "22b6187d409d75076ce161af0d1da965393b606d5fb66b7e1f74ec0f22767fab"
+    ],
+    "possible_conflict_observation_ids": []
+  },
+  {
+    "claim_id": "c9b30f6f97ff68d497e9cc5cd126c4cb994db2c13a04ff9d4592503ac9261b13",
+    "observation_id": "918801d644a3f6cc6e8e868566626b2c0d99874c3c275f3723568d28d1d14efd",
+    "source_url": "https://martinfowler.com/rachels-ramblings/good-devs-wary.html",
+    "source_title": "Why are good developers so wary of agentic development?",
+    "source_id": "rss",
+    "architecture_ids": [
+      "microservices"
+    ],
+    "claim_text": "They challenge the premise, recognise a pattern from something that went wrong ten years ago, or spot the organisational problem hiding inside the technical one.",
+    "claim_kinds": [
+      "limitation"
+    ],
+    "evidence_status": "unverified",
+    "review_status": "pending",
+    "extraction_method": "deterministic_sentence_rules",
+    "review_note": "Candidate extracted from captured source text; verify the full source and context. Similar exact claim found in another observation; inspect source independence.",
+    "normalized_claim": "they challenge the premise recognise a pattern from something that went wrong ten years ago or spot the organisational problem hiding inside the technical one",
+    "duplicate_observation_ids": [
+      "22b6187d409d75076ce161af0d1da965393b606d5fb66b7e1f74ec0f22767fab"
+    ],
+    "possible_conflict_observation_ids": []
+  }
+]

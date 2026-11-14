@@ -1,0 +1,67 @@
+{
+  "current": {
+    "architecture_mentions": {
+      "clean-architecture": 3,
+      "event-driven": 19,
+      "layered": 8,
+      "microservices": 26,
+      "modular-monolith": 7
+    },
+    "by_ecosystem": {
+      "cross_ecosystem": 29,
+      "java": 8,
+      "nodejs": 9,
+      "php": 9,
+      "python": 7
+    },
+    "by_evidence_status": {
+      "unverified": 62
+    },
+    "by_source": {
+      "github": 33,
+      "hacker_news": 28,
+      "rss": 1
+    },
+    "by_source_type": {
+      "article": 1,
+      "discussion": 28,
+      "repository": 33
+    },
+    "observation_count": 62
+  },
+  "period": "daily",
+  "period_end_exclusive": "2026-11-15T00:00:00+00:00",
+  "period_start": "2026-11-14T00:00:00+00:00",
+  "previous": {
+    "architecture_mentions": {
+      "clean-architecture": 8,
+      "event-driven": 22,
+      "layered": 10,
+      "microservices": 32,
+      "modular-monolith": 7
+    },
+    "by_ecosystem": {
+      "cross_ecosystem": 29,
+      "java": 15,
+      "nodejs": 8,
+      "php": 10,
+      "python": 12
+    },
+    "by_evidence_status": {
+      "unverified": 74
+    },
+    "by_source": {
+      "github": 45,
+      "hacker_news": 28,
+      "rss": 1
+    },
+    "by_source_type": {
+      "article": 1,
+      "discussion": 28,
+      "repository": 45
+    },
+    "observation_count": 74
+  },
+  "previous_period_end_exclusive": "2026-11-14T00:00:00+00:00",
+  "previous_period_start": "2026-11-13T00:00:00+00:00"
+}
