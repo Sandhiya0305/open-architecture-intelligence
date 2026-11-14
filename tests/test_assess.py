@@ -3,6 +3,8 @@ from datetime import date
 from pathlib import Path
 
 from oai_intelligence.assess import assess_observations, generate_evidence_assessment
+from oai_intelligence.config import load_yaml
+from oai_intelligence.models import article_observation
 from oai_intelligence.validation import validate_observation
 
 
@@ -22,6 +24,8 @@ def record(
             "source_type": "article",
             "url": f"https://{domain}/article",
             "title": "Architecture report",
+            "publisher": "Example Engineering",
+            "publisher_type": "editorial",
             "content_excerpt": claim,
             "published_at": None,
             "retrieved_at": "2026-11-13T00:00:00Z",
@@ -61,9 +65,9 @@ def test_complete_benchmark_is_only_ready_for_human_review():
         "measurement_date": "2026-11-10",
         "source_url": "https://benchmarks.example.com/run-1",
     }
-    assessment = assess_observations(
-        [record("a", "benchmark.example", evidence_details=details)]
-    )[0]
+    assessment = assess_observations([record("a", "benchmark.example", evidence_details=details)])[
+        0
+    ]
 
     assert assessment["disposition"] == "benchmark_complete_for_human_review"
     assert assessment["benchmark"]["complete"] is True
@@ -72,8 +76,12 @@ def test_complete_benchmark_is_only_ready_for_human_review():
 def test_exact_architecture_statement_on_different_hosts_is_only_a_review_lead():
     statement = "The microservices architecture improved request latency by 20 percent."
     records = [
-        record("a", "publisher-one.example", claim=statement, claim_type="architecture_description"),
-        record("b", "publisher-two.example", claim=statement, claim_type="architecture_description"),
+        record(
+            "a", "publisher-one.example", claim=statement, claim_type="architecture_description"
+        ),
+        record(
+            "b", "publisher-two.example", claim=statement, claim_type="architecture_description"
+        ),
     ]
     results = assess_observations(records)
 
@@ -96,8 +104,16 @@ def test_same_host_does_not_count_as_cross_host_match():
 
 def test_different_claims_do_not_match():
     records = [
-        record("a", "publisher-one.example", claim="The microservices architecture improved request latency by 20 percent."),
-        record("b", "publisher-two.example", claim="The layered architecture improved maintainability across teams."),
+        record(
+            "a",
+            "publisher-one.example",
+            claim="The microservices architecture improved request latency by 20 percent.",
+        ),
+        record(
+            "b",
+            "publisher-two.example",
+            claim="The layered architecture improved maintainability across teams.",
+        ),
     ]
     results = assess_observations(records)
 
@@ -106,7 +122,12 @@ def test_different_claims_do_not_match():
 
 
 def test_boilerplate_observation_claim_is_not_used_as_evidence():
-    item = record("a", "example.com", claim="The weather was sunny yesterday.", claim_type="architecture_description")
+    item = record(
+        "a",
+        "example.com",
+        claim="The weather was sunny yesterday.",
+        claim_type="architecture_description",
+    )
     item["claim"] = "A repository matched configured search terms."
 
     assessment = assess_observations([item])[0]
@@ -152,9 +173,10 @@ def test_generate_assessments_writes_jsonl_and_summary(tmp_path: Path):
     data_dir = tmp_path / "observations"
     data_dir.mkdir()
     observation = record("a", "example.com")
-    (data_dir / "2026-11-13.jsonl").write_text(
-        json.dumps(observation) + "\n", encoding="utf-8"
-    )
+    (data_dir / "2026-11-13.jsonl").write_text(json.dumps(observation) + "\n", encoding="utf-8")
+    previous = record("previous", "previous.example")
+    previous["observed_at"] = "2026-11-12T12:00:00Z"
+    (data_dir / "2026-11-12.jsonl").write_text(json.dumps(previous) + "\n", encoding="utf-8")
 
     result = generate_evidence_assessment(
         data_dir=data_dir,
@@ -162,8 +184,28 @@ def test_generate_assessments_writes_jsonl_and_summary(tmp_path: Path):
         as_of=date(2026, 11, 13),
     )
 
+    assert result["observations_loaded"] == 2
     assert result["assessments_written"] == 1
     assert result["extracted_statements"] == 1
     assert Path(result["jsonl"]).exists()
     assert Path(result["json"]).exists()
     assert Path(result["markdown"]).exists()
+
+
+def test_rss_performance_language_enters_benchmark_methodology_assessment():
+    taxonomy = load_yaml(Path(__file__).parents[1] / "config" / "architecture_taxonomy.yaml")
+    article = {
+        "url": "https://example.org/benchmark",
+        "title": "Microservices benchmark",
+        "feed_id": "infoq_architecture",
+        "publisher": "InfoQ Architecture & Design",
+        "publisher_type": "editorial",
+        "summary": "A benchmark measured p95 latency at 42 ms under the documented workload.",
+    }
+    observation = article_observation(article, taxonomy)
+
+    assessment = assess_observations([observation])[0]
+
+    assert assessment["disposition"] == "benchmark_incomplete"
+    assert "methodology" in assessment["benchmark"]["missing_fields"]
+    assert assessment["original_evidence_status"] == "unverified"

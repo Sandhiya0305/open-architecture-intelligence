@@ -26,12 +26,15 @@ sources:
     feeds:
       - id: infoq_architecture
         publisher: "InfoQ Architecture & Design"
+        publisher_type: "editorial"
         url: "https://feed.infoq.com/architecture-design/"
       - id: aws_architecture
         publisher: "AWS Architecture Blog"
+        publisher_type: "vendor"
         url: "https://aws.amazon.com/blogs/architecture/feed/"
       - id: martin_fowler
         publisher: "Martin Fowler"
+        publisher_type: "practitioner"
         url: "https://martinfowler.com/feed.atom"
 notes:
   - "Only public, permitted sources are in scope."

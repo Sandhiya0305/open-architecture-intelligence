@@ -1,5 +1,6 @@
 """Orchestrate discovery, classification, validation, and persistence."""
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,7 @@ from oai_intelligence.models import (
     repository_observation,
 )
 from oai_intelligence.storage import append_observations
+from oai_intelligence.types import ObservationRecord
 from oai_intelligence.validation import CONFIG_ROOT, PROJECT_ROOT, validate_project_configs
 
 
@@ -32,7 +34,7 @@ def _discovery_context(root: Path) -> tuple[dict[str, Any], dict[str, Any], dict
 
 
 def _save(
-    observations: list[dict[str, Any]],
+    observations: Sequence[ObservationRecord],
     observed_at: datetime,
     output_dir: Path | None,
     root: Path,
@@ -58,7 +60,7 @@ def run_github_discovery(
     )
     collector = GitHubCollector(user_agent=source_config["policy"]["user_agent"])
     observed_at = datetime.now(UTC)
-    observations: list[dict[str, Any]] = []
+    observations: list[ObservationRecord] = []
     search_counts: dict[str, int] = {}
     candidate_counts: dict[str, int] = {}
 

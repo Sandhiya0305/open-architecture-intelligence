@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Sandhiya0305/open-architecture-intelligence/blob/main/schema/review-decision.schema.json",
+  "$id": "urn:oai:review-decision:v1",
   "title": "Authenticated human claim review decision",
   "type": "object",
   "additionalProperties": false,
@@ -29,7 +29,11 @@
       "pattern": "^[a-f0-9]{64}$"
     },
     "decision": {
-      "enum": ["approve", "reject", "needs-evidence"]
+      "enum": [
+        "approve",
+        "reject",
+        "needs-evidence"
+      ]
     },
     "reviewer": {
       "type": "string",

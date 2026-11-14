@@ -90,8 +90,18 @@ def test_duplicate_feed_ids_are_rejected() -> None:
                 "type": "feed",
                 "enabled": True,
                 "feeds": [
-                    {"id": "same", "publisher": "One", "url": "https://one.example/feed"},
-                    {"id": "same", "publisher": "Two", "url": "https://two.example/feed"},
+                    {
+                        "id": "same",
+                        "publisher": "One",
+                        "publisher_type": "editorial",
+                        "url": "https://one.example/feed",
+                    },
+                    {
+                        "id": "same",
+                        "publisher": "Two",
+                        "publisher_type": "vendor",
+                        "url": "https://two.example/feed",
+                    },
                 ],
             }
         ],

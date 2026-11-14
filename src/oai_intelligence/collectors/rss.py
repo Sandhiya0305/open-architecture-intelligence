@@ -185,7 +185,9 @@ class RSSCollector:
         try:
             root = ET.fromstring(payload)
         except (StdET.ParseError, DefusedXmlException, ValueError) as exc:
-            raise RSSCollectorError(f"Feed {feed_id} contains invalid or unsafe XML: {exc}") from exc
+            raise RSSCollectorError(
+                f"Feed {feed_id} contains invalid or unsafe XML: {exc}"
+            ) from exc
 
         feed_title = _child_text(root, {"title"}) or str(feed.get("publisher") or feed_id)
         entries = [
@@ -206,6 +208,7 @@ class RSSCollector:
                     "feed_id": feed_id,
                     "feed_title": feed_title,
                     "publisher": str(feed.get("publisher") or feed_title),
+                    "publisher_type": str(feed.get("publisher_type") or "unspecified"),
                     "entry_id": guid,
                     "title": title,
                     "url": link,

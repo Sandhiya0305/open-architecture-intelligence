@@ -4,51 +4,31 @@ import json
 from collections import Counter
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from jsonschema import ValidationError
 
+from oai_intelligence.jsonl import iter_jsonl_objects
 from oai_intelligence.migrations import migrate_observation_record
+from oai_intelligence.types import ObservationRecord
 from oai_intelligence.validation import PROJECT_ROOT, validate_observation
 
 
-def load_observations(data_dir: Path, as_of: date | None = None) -> list[dict[str, Any]]:
+def load_observations(data_dir: Path, as_of: date | None = None) -> list[ObservationRecord]:
     """Load, migrate, and validate append-only JSONL observations."""
-    records: list[dict[str, Any]] = []
+    records: list[ObservationRecord] = []
     if not data_dir.exists():
         return records
     for path in sorted(data_dir.glob("*.jsonl")):
         if as_of is not None and path.stem > as_of.isoformat():
             continue
-        with path.open(encoding="utf-8") as stream:
-            for line_number, line in enumerate(stream, start=1):
-                if not line.strip():
-                    continue
-                try:
-                    record = json.loads(line)
-                except json.JSONDecodeError as exc:
-                    raise ValueError(f"Invalid JSON in {path}:{line_number}: {exc}") from exc
-                if not isinstance(record, dict):
-                    raise TypeError(f"Expected an observation object in {path}:{line_number}.")
-                try:
-                    migrated = migrate_observation_record(record)
-                    validate_observation(migrated)
-                except (TypeError, ValueError, ValidationError) as exc:
-                    raise ValueError(f"Invalid observation in {path}:{line_number}: {exc}") from exc
-                records.append(migrated)
-    return records
-    for path in sorted(data_dir.glob("*.jsonl")):
-        with path.open(encoding="utf-8") as stream:
-            for line_number, line in enumerate(stream, start=1):
-                if not line.strip():
-                    continue
-                try:
-                    record = json.loads(line)
-                except json.JSONDecodeError as exc:
-                    raise ValueError(f"Invalid JSON in {path}:{line_number}: {exc}") from exc
-                if not isinstance(record, dict):
-                    raise TypeError(f"Expected an observation object in {path}:{line_number}.")
-                records.append(record)
+        for line_number, record in iter_jsonl_objects(path):
+            try:
+                migrated = migrate_observation_record(record)
+                validate_observation(migrated)
+            except (TypeError, ValueError, ValidationError) as exc:
+                raise ValueError(f"Invalid observation in {path}:{line_number}: {exc}") from exc
+            records.append(cast(ObservationRecord, migrated))
     return records
 
 
@@ -60,19 +40,22 @@ def _parse_timestamp(value: str) -> datetime:
 
 
 def _period_counts(
-    records: list[dict[str, Any]], start: datetime, end: datetime
+    records: list[ObservationRecord], start: datetime, end: datetime
 ) -> dict[str, Any]:
-    raw_selected = [
-        item for item in records
-        if start <= _parse_timestamp(item["observed_at"]) < end
+    raw_selected: list[ObservationRecord] = [
+        item for item in records if start <= _parse_timestamp(item["observed_at"]) < end
     ]
 
     # A source can be observed on several days. Keep its latest snapshot once per window.
-    latest_by_source: dict[str, dict[str, Any]] = {}
+    latest_by_source: dict[str, ObservationRecord] = {}
     for index, item in enumerate(raw_selected):
-        source_key = str(item.get("source_record_id") or item.get("observation_id") or f"record:{index}")
+        source_key = str(
+            item.get("source_record_id") or item.get("observation_id") or f"record:{index}"
+        )
         current = latest_by_source.get(source_key)
-        if current is None or _parse_timestamp(item["observed_at"]) > _parse_timestamp(current["observed_at"]):
+        if current is None or _parse_timestamp(item["observed_at"]) > _parse_timestamp(
+            current["observed_at"]
+        ):
             latest_by_source[source_key] = item
     selected = list(latest_by_source.values())
 
@@ -109,7 +92,7 @@ def _format_counts(title: str, counts: dict[str, int]) -> list[str]:
 
 
 def render_trend_report(
-    records: list[dict[str, Any]], period: str, as_of: date
+    records: list[ObservationRecord], period: str, as_of: date
 ) -> tuple[str, dict[str, Any]]:
     """Render a sample snapshot; it intentionally makes no trend or adoption inference."""
     if period not in {"daily", "weekly"}:

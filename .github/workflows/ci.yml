@@ -32,5 +32,7 @@ jobs:
         run: python -m pytest
       - name: Lint
         run: ruff check .
+      - name: Check types
+        run: mypy src/oai_intelligence
       - name: Validate project configuration
         run: oai validate-config

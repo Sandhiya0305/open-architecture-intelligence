@@ -5,6 +5,7 @@ import re
 from datetime import UTC, datetime
 from typing import Any
 
+from oai_intelligence.types import ObservationRecord
 from oai_intelligence.validation import validate_observation
 
 
@@ -47,7 +48,7 @@ def repository_observation(
     ecosystem: str,
     taxonomy: dict[str, Any],
     observed_at: datetime | None = None,
-) -> dict[str, Any]:
+) -> ObservationRecord:
     observed_at = observed_at or utc_now()
     timestamp = _timestamp(observed_at)
     full_name = repository["full_name"]
@@ -58,7 +59,7 @@ def repository_observation(
     observation_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
     license_info = repository.get("license") or {}
 
-    observation = {
+    observation: ObservationRecord = {
         "schema_version": 1,
         "observation_id": observation_id,
         "source_record_id": f"github:{full_name}",
@@ -108,7 +109,7 @@ def discussion_observation(
     story: dict[str, Any],
     taxonomy: dict[str, Any],
     observed_at: datetime | None = None,
-) -> dict[str, Any]:
+) -> ObservationRecord:
     observed_at = observed_at or utc_now()
     timestamp = _timestamp(observed_at)
     object_id = str(story.get("objectID") or "")
@@ -125,7 +126,7 @@ def discussion_observation(
     identity = f"hacker_news:{object_id}:{observed_at.date().isoformat()}"
     observation_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
 
-    observation = {
+    observation: ObservationRecord = {
         "schema_version": 1,
         "observation_id": observation_id,
         "source_record_id": f"hacker_news:{object_id}",
@@ -165,11 +166,18 @@ def discussion_observation(
     return observation
 
 
+_PERFORMANCE_TERMS = re.compile(
+    r"\b(latency|throughput|requests? per second|rps|p95|p99|benchmark|"
+    r"load test|response time|memory usage|cpu usage)\b",
+    re.IGNORECASE,
+)
+
+
 def article_observation(
     article: dict[str, Any],
     taxonomy: dict[str, Any],
     observed_at: datetime | None = None,
-) -> dict[str, Any]:
+) -> ObservationRecord:
     observed_at = observed_at or utc_now()
     timestamp = _timestamp(observed_at)
     article_url = str(article.get("url") or "")
@@ -179,7 +187,8 @@ def article_observation(
     if not article_url.startswith("https://") or not title or not feed_id:
         raise ValueError("RSS articles require a title, feed_id, and HTTPS article URL.")
 
-    searchable = " ".join([title, str(article.get("summary") or "")])
+    summary = str(article.get("summary") or "")
+    searchable = " ".join([title, summary])
     matches = classify_architectures(
         {"name": title, "description": searchable, "topics": []}, taxonomy
     )
@@ -187,7 +196,7 @@ def article_observation(
     observation_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
     publisher = str(article.get("publisher") or article.get("feed_title") or feed_id)
 
-    observation = {
+    observation: ObservationRecord = {
         "schema_version": 1,
         "observation_id": observation_id,
         "source_record_id": f"rss:{feed_id}:{entry_id}",
@@ -196,6 +205,8 @@ def article_observation(
             "source_type": "article",
             "url": article_url,
             "title": title,
+            "publisher": publisher,
+            "publisher_type": str(article.get("publisher_type") or "unspecified"),
             "content_excerpt": str(article.get("summary") or "")[:4000],
             "published_at": article.get("published_at"),
             "retrieved_at": timestamp,
@@ -208,14 +219,20 @@ def article_observation(
             f"An article from {publisher} matched configured architecture discovery terms. "
             "This is a research candidate, not independently verified evidence."
         ),
-        "claim_type": "discovery_candidate",
+        "claim_type": "performance_claim"
+        if _PERFORMANCE_TERMS.search(searchable)
+        else "discovery_candidate",
         "evidence_status": "unverified",
         "evidence_notes": (
-            "Classification uses article title and feed summary only. "
+            "Classification uses article title and feed summary only. A performance keyword "
+            "marks a candidate for methodology review; it is not a measured result. "
             "The full article has not been reviewed or corroborated."
         ),
         "tags": ["rss", "article", publisher, *matches],
         "metrics": {},
     }
+    details = article.get("evidence_details")
+    if isinstance(details, dict):
+        observation["evidence_details"] = details
     validate_observation(observation)
     return observation

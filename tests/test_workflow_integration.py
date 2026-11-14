@@ -1,4 +1,4 @@
-﻿import json
+import json
 import subprocess
 from datetime import date
 from pathlib import Path
@@ -12,9 +12,7 @@ AS_OF = date(2026, 11, 13)
 
 
 def _run_git(path: Path, *args: str) -> str:
-    result = subprocess.run(
-        ["git", *args], cwd=path, check=True, capture_output=True, text=True
-    )
+    result = subprocess.run(["git", *args], cwd=path, check=True, capture_output=True, text=True)
     return result.stdout.strip()
 
 
@@ -31,6 +29,8 @@ def test_discover_review_and_publish_flow_is_site_visible(tmp_path: Path, monkey
             "source_type": "article",
             "url": "https://publisher.example/architecture",
             "title": "Microservices deployment case study",
+            "publisher": "Example Engineering",
+            "publisher_type": "editorial",
             "content_excerpt": (
                 "The microservices architecture improved independent deployment speed "
                 "across product teams by reducing release coordination."
@@ -49,9 +49,7 @@ def test_discover_review_and_publish_flow_is_site_visible(tmp_path: Path, monkey
         "tags": ["microservices"],
         "metrics": {},
     }
-    (data_dir / "2026-11-13.jsonl").write_text(
-        json.dumps(observation) + "\n", encoding="utf-8"
-    )
+    (data_dir / "2026-11-13.jsonl").write_text(json.dumps(observation) + "\n", encoding="utf-8")
     queue_dir = tmp_path / "queue"
     reviews_file = tmp_path / "reviews" / "decisions.jsonl"
     queue_result = generate_claim_review_queue(
@@ -136,11 +134,10 @@ def test_discover_review_and_publish_flow_is_site_visible(tmp_path: Path, monkey
 
     assert result["pull_request_url"].endswith("/pull/99")
     branch = result["branch"]
-    published_text = _run_git(knowledge_repo, "show", f"{branch}:docs/research-candidates/2026-11-13.md")
+    published_text = _run_git(
+        knowledge_repo, "show", f"{branch}:docs/research-candidates/2026-11-13.md"
+    )
     index_text = _run_git(knowledge_repo, "show", f"{branch}:docs/research-candidates/index.md")
     assert "Evidence status: UNVERIFIED" in published_text
     assert "2026-11-13.md" in index_text
     assert _run_git(knowledge_repo, "branch", "--show-current") == "main"
-
-
-

@@ -11,8 +11,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from oai_intelligence.formatting import escape_markdown
 from oai_intelligence.reports import load_observations
 from oai_intelligence.review import latest_review_decisions
+from oai_intelligence.types import ClaimCandidate, ObservationRecord
 from oai_intelligence.validation import PROJECT_ROOT, validate_claim
 
 _CLAIM_PATTERNS = {
@@ -32,6 +34,12 @@ _CLAIM_PATTERNS = {
         re.IGNORECASE,
     ),
 }
+_CONTEXT_TERMS = re.compile(
+    r"\b(by|because|due to|through|compared with|compared to|versus|"
+    r"as a result|in response to|to support|to avoid|after adopting|"
+    r"which (?:reduced|increased|improved|introduced|required))\b",
+    re.IGNORECASE,
+)
 _ARCHITECTURE_TERMS = re.compile(
     r"\b(architecture|architectural|microservices?|monolith(?:ic)?|"
     r"event[- ]driven|layered|hexagonal|clean architecture|modular|"
@@ -71,19 +79,13 @@ def _normalize(text: str) -> str:
     return " ".join(re.findall(r"[a-z0-9]+", text.casefold()))
 
 
-def _escape_markdown(value: str) -> str:
-    escaped = []
-    for character in value:
-        if character in "\\`*_{}[]()#+.!|>":
-            escaped.append("\\")
-        escaped.append(character)
-    return "".join(escaped)
-
-
-def extract_claim_candidates(observation: dict[str, Any]) -> list[dict[str, Any]]:
+def extract_claim_candidates(observation: ObservationRecord) -> list[ClaimCandidate]:
     """Extract review leads only from curated article text, never metadata or discussion."""
     source = observation.get("source", {})
     if source.get("source_type") != "article":
+        return []
+    publisher_type = source.get("publisher_type")
+    if publisher_type not in {"editorial", "practitioner", "research"}:
         return []
 
     excerpt = _clean_text(str(source.get("content_excerpt") or ""))
@@ -96,7 +98,7 @@ def extract_claim_candidates(observation: dict[str, Any]) -> list[dict[str, Any]
     if not source_record_id:
         return []
 
-    candidates = []
+    candidates: list[ClaimCandidate] = []
     for sentence in _sentences(excerpt):
         # Reject fragments and feed-summary truncation rather than publishing broken text.
         if len(sentence) < 45 or len(sentence) > 600:
@@ -106,7 +108,7 @@ def extract_claim_candidates(observation: dict[str, Any]) -> list[dict[str, Any]
         if not _ARCHITECTURE_TERMS.search(sentence):
             continue
         matched = [kind for kind, pattern in _CLAIM_PATTERNS.items() if pattern.search(sentence)]
-        if not matched:
+        if not matched or not _CONTEXT_TERMS.search(sentence):
             continue
         normalized = _normalize(sentence)
         if len(normalized.split()) < 7:
@@ -115,12 +117,14 @@ def extract_claim_candidates(observation: dict[str, Any]) -> list[dict[str, Any]
         fingerprint = hashlib.sha256(
             f"{source_record_id}:{source_url}:{normalized}".encode()
         ).hexdigest()
-        candidate = {
+        candidate: ClaimCandidate = {
             "schema_version": 1,
             "claim_id": fingerprint,
             "observation_id": observation["observation_id"],
             "source_url": source_url,
             "source_title": str(source.get("title") or source_url),
+            "publisher": str(source.get("publisher") or source.get("title") or source_url),
+            "publisher_type": publisher_type,
             "source_id": str(source["source_id"]),
             "source_record_id": source_record_id,
             "source_type": "article",
@@ -129,10 +133,11 @@ def extract_claim_candidates(observation: dict[str, Any]) -> list[dict[str, Any]
             "claim_kinds": matched,
             "evidence_status": "unverified",
             "review_status": "pending",
-            "extraction_method": "architecture_sentence_rules_v2",
+            "extraction_method": "architecture_sentence_rules_v3",
             "review_note": (
                 "Candidate extracted from a curated-feed article summary. "
-                "The full source, author perspective, context, and supporting evidence "
+                "Publisher perspective is recorded but is not a credibility score. "
+                "The full source, author context, and supporting evidence "
                 "have not been independently assessed."
             ),
             "normalized_claim": normalized,
@@ -144,21 +149,21 @@ def extract_claim_candidates(observation: dict[str, Any]) -> list[dict[str, Any]
     return candidates
 
 
-def build_review_queue(observations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def build_review_queue(observations: list[ObservationRecord]) -> list[ClaimCandidate]:
     # Stable claim IDs and source_record_id collapse repeated daily observations of one source.
-    unique: dict[str, dict[str, Any]] = {}
+    unique: dict[str, ClaimCandidate] = {}
     for observation in observations:
         for claim in extract_claim_candidates(observation):
             unique.setdefault(claim["claim_id"], claim)
 
     candidates = list(unique.values())
-    groups: dict[tuple[tuple[str, ...], str], list[dict[str, Any]]] = defaultdict(list)
+    groups: dict[tuple[tuple[str, ...], str], list[ClaimCandidate]] = defaultdict(list)
     for claim in candidates:
         groups[(tuple(claim["architecture_ids"]), claim["normalized_claim"])].append(claim)
 
-    queue = []
+    queue: list[ClaimCandidate] = []
     for claim in candidates:
-        item = dict(claim)
+        item = claim.copy()
         peers = groups[(tuple(item["architecture_ids"]), item["normalized_claim"])]
         independent_peers = [
             peer for peer in peers if peer["source_record_id"] != item["source_record_id"]
@@ -187,7 +192,14 @@ def generate_claim_review_queue(
     reviews_file = reviews_file or PROJECT_ROOT / "data" / "reviews" / "claim-decisions.jsonl"
     as_of = as_of or datetime.now(UTC).date()
     observations = load_observations(data_dir, as_of=as_of)
-    queue = build_review_queue(observations)
+    observation_dates = {
+        str(item["observation_id"]): str(item["observed_at"])[:10] for item in observations
+    }
+    queue = [
+        claim
+        for claim in build_review_queue(observations)
+        if observation_dates.get(claim["observation_id"]) == as_of.isoformat()
+    ]
     decisions = latest_review_decisions(reviews_file)
     for claim in queue:
         decision = decisions.get(claim["claim_id"])
@@ -211,24 +223,29 @@ def generate_claim_review_queue(
         "",
         f"Candidate claims: **{len(queue)}**",
         "",
-        ("All items are unverified review leads. Extraction does not establish truth, causality, " +
-         "independent corroboration, or source credibility."),
+        (
+            "All items are unverified review leads. Extraction does not establish truth, causality, "
+            + "independent corroboration, or source credibility."
+        ),
         "",
     ]
     for index, item in enumerate(queue, start=1):
-        lines.extend([
-            f"## {index}. {_escape_markdown(item['claim_text'])}",
-            "",
-            f"- Type: {', '.join(item['claim_kinds'])}",
-            f"- Architecture: {', '.join(item['architecture_ids']) or 'Unclassified'}",
-            f"- Source: [{_escape_markdown(item['source_title'])}](<{item['source_url']}>)",
-            f"- Observation: `{item['observation_id']}`",
-            f"- Claim ID: `{item['claim_id']}`",
-            f"- Review: {item['review_status']} / {item['evidence_status']}",
-            f"- Reviewer: {item.get('reviewer', 'Not yet reviewed')}",
-            f"- Note: {_escape_markdown(item['review_note'])}",
-            "",
-        ])
+        lines.extend(
+            [
+                f"## {index}. {escape_markdown(item['claim_text'])}",
+                "",
+                f"- Type: {', '.join(item['claim_kinds'])}",
+                f"- Publisher: {escape_markdown(item.get('publisher', 'Unspecified publisher'))} ({item.get('publisher_type', 'unspecified')})",
+                f"- Architecture: {', '.join(item['architecture_ids']) or 'Unclassified'}",
+                f"- Source: [{escape_markdown(item['source_title'])}](<{item['source_url']}>)",
+                f"- Observation: `{item['observation_id']}`",
+                f"- Claim ID: `{item['claim_id']}`",
+                f"- Review: {item['review_status']} / {item['evidence_status']}",
+                f"- Reviewer: {item.get('reviewer', 'Not yet reviewed')}",
+                f"- Note: {escape_markdown(item['review_note'])}",
+                "",
+            ]
+        )
     markdown_path.write_text("\n".join(lines), encoding="utf-8")
     return {
         "observations_scanned": len(observations),

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Sandhiya0305/open-architecture-intelligence/blob/main/schema/observation.schema.json",
+  "$id": "urn:oai:observation:v1",
   "title": "Architecture discovery observation",
   "description": "A dated, provenance-preserving record collected from a permitted public source.",
   "type": "object",
@@ -81,6 +81,20 @@
         "retrieved_at": {
           "type": "string",
           "format": "date-time"
+        },
+        "publisher": {
+          "type": "string",
+          "minLength": 1
+        },
+        "publisher_type": {
+          "enum": [
+            "editorial",
+            "practitioner",
+            "vendor",
+            "research",
+            "community",
+            "unspecified"
+          ]
         }
       }
     },

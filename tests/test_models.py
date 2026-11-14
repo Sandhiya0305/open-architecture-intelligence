@@ -1,7 +1,11 @@
 from datetime import UTC, datetime
 
 from oai_intelligence.config import load_yaml
-from oai_intelligence.models import classify_architectures, repository_observation
+from oai_intelligence.models import (
+    article_observation,
+    classify_architectures,
+    repository_observation,
+)
 from oai_intelligence.validation import PROJECT_ROOT
 
 
@@ -72,3 +76,20 @@ def test_classifier_uses_explicit_aliases():
     assert classify_architectures({"name": "Ports and Adapters example"}, taxonomy) == [
         "clean-architecture"
     ]
+
+
+def test_article_performance_language_is_flagged_for_methodology_review():
+    taxonomy = load_yaml(PROJECT_ROOT / "config" / "architecture_taxonomy.yaml")
+    article = {
+        "url": "https://example.org/benchmark",
+        "title": "Microservices benchmark",
+        "feed_id": "infoq_architecture",
+        "publisher": "InfoQ Architecture & Design",
+        "publisher_type": "editorial",
+        "summary": "A benchmark measured p95 latency at 42 ms under the documented workload.",
+    }
+
+    observation = article_observation(article, taxonomy, datetime(2026, 11, 14, tzinfo=UTC))
+
+    assert observation["claim_type"] == "performance_claim"
+    assert observation["evidence_status"] == "unverified"

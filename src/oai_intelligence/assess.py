@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 
 from oai_intelligence.claims import extract_claim_candidates
 from oai_intelligence.reports import load_observations
+from oai_intelligence.types import ClaimCandidate, ObservationRecord
 from oai_intelligence.validation import PROJECT_ROOT
 
 BENCHMARK_FIELDS = (
@@ -37,9 +38,13 @@ def _has_value(value: Any) -> bool:
     return True
 
 
-def assess_observations(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def assess_observations(
+    records: list[ObservationRecord],
+    target_observation_ids: set[str] | None = None,
+    assessment_date: date | None = None,
+) -> list[dict[str, Any]]:
     """Assess extracted article statements and benchmark completeness, not boilerplate claims."""
-    extracted_by_observation: dict[str, list[dict[str, Any]]] = {}
+    extracted_by_observation: dict[str, list[ClaimCandidate]] = {}
     statement_hosts: dict[tuple[str, tuple[str, ...]], set[str]] = defaultdict(set)
 
     for record in records:
@@ -53,7 +58,16 @@ def assess_observations(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 statement_hosts[key].add(host)
 
     assessments: list[dict[str, Any]] = []
-    for record in records:
+    assessment_records = (
+        records
+        if target_observation_ids is None
+        else [
+            record
+            for record in records
+            if str(record.get("observation_id") or "") in target_observation_ids
+        ]
+    )
+    for record in assessment_records:
         source = record.get("source", {})
         metrics = record.get("metrics", {})
         evidence = record.get("evidence_details", {})
@@ -65,7 +79,9 @@ def assess_observations(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             matching_hosts.update(statement_hosts.get(key, set()) - ({host} if host else set()))
 
         claim_type = record.get("claim_type", "other")
-        is_performance = claim_type == "performance_claim" or source.get("source_type") == "benchmark"
+        is_performance = (
+            claim_type == "performance_claim" or source.get("source_type") == "benchmark"
+        )
         missing_benchmark_fields = [
             field for field in BENCHMARK_FIELDS if not _has_value(evidence.get(field))
         ]
@@ -143,7 +159,7 @@ def assess_observations(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "original_evidence_status": original_status,
                 "disposition": disposition,
                 "rationale": rationale,
-                "assessed_at": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+                "assessment_date": assessment_date.isoformat() if assessment_date else None,
             }
         )
     return assessments
@@ -209,7 +225,13 @@ def generate_evidence_assessment(
     """Write per-observation assessments plus a human-readable summary."""
     report_date = as_of or datetime.now(UTC).date()
     records = load_observations(data_dir or root / "data" / "observations", as_of=report_date)
-    assessments = assess_observations(records)
+    current_records = [
+        record
+        for record in records
+        if datetime.fromisoformat(record["observed_at"]).astimezone(UTC).date() == report_date
+    ]
+    target_ids = {str(record["observation_id"]) for record in current_records}
+    assessments = assess_observations(records, target_ids, report_date)
     markdown, summary = render_evidence_summary(assessments, report_date)
     destination = output_dir or root / "reports" / "evidence"
     destination.mkdir(parents=True, exist_ok=True)

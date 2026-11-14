@@ -2,6 +2,7 @@
 
 import json
 import os
+from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -70,19 +71,17 @@ def validate_project_configs(root: Path | None = None) -> None:
             raise TypeError(f"Aliases for {item['id']} must be a list.")
 
 
-def validate_observation(
-    observation: dict[str, Any], schema_path: Path = SCHEMA_PATH
-) -> None:
+def validate_observation(observation: Mapping[str, Any], schema_path: Path = SCHEMA_PATH) -> None:
     _schema_validator(schema_path.resolve()).validate(observation)
 
 
-def validate_claim(claim: dict[str, Any], schema_path: Path = CLAIM_SCHEMA_PATH) -> None:
+def validate_claim(claim: Mapping[str, Any], schema_path: Path = CLAIM_SCHEMA_PATH) -> None:
     """Validate a source-linked candidate claim against its versioned contract."""
     _schema_validator(schema_path.resolve()).validate(claim)
 
 
 def validate_review_decision(
-    decision: dict[str, Any], schema_path: Path = REVIEW_SCHEMA_PATH
+    decision: Mapping[str, Any], schema_path: Path = REVIEW_SCHEMA_PATH
 ) -> None:
     """Validate an append-only human review decision."""
     _schema_validator(schema_path.resolve()).validate(decision)

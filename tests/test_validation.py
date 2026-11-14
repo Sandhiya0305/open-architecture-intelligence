@@ -15,7 +15,9 @@ def test_packaged_configuration_and_schemas_match_repository_sources():
                 assert packaged.read_bytes() == source.read_bytes()
 
 
-def test_validation_uses_bundled_resources_when_given_an_external_data_directory(tmp_path, monkeypatch):
+def test_validation_uses_bundled_resources_when_given_an_external_data_directory(
+    tmp_path, monkeypatch
+):
     monkeypatch.setattr(
         validation,
         "CONFIG_ROOT",
@@ -23,3 +25,17 @@ def test_validation_uses_bundled_resources_when_given_an_external_data_directory
     )
 
     validation.validate_project_configs(tmp_path)
+
+
+def test_schema_identifiers_are_stable_and_versioned():
+    import json
+
+    schema_dir = validation.PROJECT_ROOT / "schema"
+    expected = {
+        "observation.schema.json": "urn:oai:observation:v1",
+        "claim.schema.json": "urn:oai:claim:v1",
+        "review-decision.schema.json": "urn:oai:review-decision:v1",
+    }
+    for filename, schema_id in expected.items():
+        schema = json.loads((schema_dir / filename).read_text(encoding="utf-8"))
+        assert schema["$id"] == schema_id

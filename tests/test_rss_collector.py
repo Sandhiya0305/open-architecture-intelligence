@@ -39,7 +39,12 @@ ATOM_XML = b"""<?xml version="1.0"?>
 
 def test_fetches_and_parses_rss_items_and_checks_robots() -> None:
     collector = RSSCollector(user_agent="OAI-tests")
-    feed = {"id": "example", "publisher": "Example Publisher", "url": "https://example.com/feed"}
+    feed = {
+        "id": "example",
+        "publisher": "Example Publisher",
+        "publisher_type": "editorial",
+        "url": "https://example.com/feed",
+    }
     with patch(
         "oai_intelligence.collectors.rss.urlopen",
         side_effect=[io.BytesIO(ROBOTS_ALLOW), io.BytesIO(RSS_XML)],
@@ -52,6 +57,7 @@ def test_fetches_and_parses_rss_items_and_checks_robots() -> None:
     assert items[0]["published_at"] == "2026-11-12T10:00:00Z"
     assert "practical architecture article" in items[0]["summary"]
     assert items[0]["publisher"] == "Example Publisher"
+    assert items[0]["publisher_type"] == "editorial"
     assert mocked.call_count == 2
     assert mocked.call_args_list[0].args[0].full_url == "https://example.com/robots.txt"
     assert mocked.call_args_list[0].args[0].get_header("User-agent") == "OAI-tests"

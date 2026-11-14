@@ -30,7 +30,8 @@ def _require(condition: bool, message: str) -> None:
 def validate_sources(data: dict[str, Any]) -> None:
     _require(data.get("version") == 1, "sources.yaml: version must be 1.")
     policy = data.get("policy")
-    _require(isinstance(policy, dict), "sources.yaml: policy must be a mapping.")
+    if not isinstance(policy, dict):
+        raise ConfigError("sources.yaml: policy must be a mapping.")
     for key in ("respect_robots_txt", "respect_rate_limits", "store_source_urls"):
         _require(policy.get(key) is True, f"sources.yaml: policy.{key} must be true.")
     _require(
@@ -38,10 +39,8 @@ def validate_sources(data: dict[str, Any]) -> None:
         "sources.yaml: full source text republishing must be disabled.",
     )
     sources = data.get("sources")
-    _require(
-        isinstance(sources, list) and bool(sources),
-        "sources.yaml: sources must be a non-empty list.",
-    )
+    if not isinstance(sources, list) or not sources:
+        raise ConfigError("sources.yaml: sources must be a non-empty list.")
     ids: set[str] = set()
     for source in sources:
         _require(isinstance(source, dict), "sources.yaml: each source must be a mapping.")
@@ -92,15 +91,18 @@ def validate_sources(data: dict[str, Any]) -> None:
                     isinstance(feed.get("publisher"), str) and bool(feed["publisher"].strip()),
                     f"sources.yaml: feed {feed_id} needs a publisher name.",
                 )
+                _require(
+                    feed.get("publisher_type")
+                    in {"editorial", "practitioner", "vendor", "research", "community"},
+                    f"sources.yaml: feed {feed_id} needs a recognized publisher_type.",
+                )
 
 
 def validate_discovery(data: dict[str, Any]) -> None:
     _require(data.get("version") == 1, "discovery.yaml: version must be 1.")
     ecosystems = data.get("ecosystems")
-    _require(
-        isinstance(ecosystems, dict) and bool(ecosystems),
-        "discovery.yaml: ecosystems must be a non-empty mapping.",
-    )
+    if not isinstance(ecosystems, dict) or not ecosystems:
+        raise ConfigError("discovery.yaml: ecosystems must be a non-empty mapping.")
     for ecosystem, settings in ecosystems.items():
         _require(isinstance(settings, dict), f"{ecosystem}: settings must be a mapping.")
         _require(
