@@ -14,6 +14,7 @@ def record(
     evidence_details=None,
 ):
     return {
+        "schema_version": 1,
         "observation_id": observation_id,
         "source_record_id": f"{domain}:{observation_id}",
         "source": {

@@ -1,4 +1,4 @@
-﻿import json
+import json
 from datetime import date
 from pathlib import Path
 
@@ -91,16 +91,28 @@ def test_regenerated_claim_queue_reflects_latest_human_decision(tmp_path: Path):
     data_dir = tmp_path / "observations"
     data_dir.mkdir()
     source_observation = {
+        "schema_version": 1,
         "observation_id": "observation-live",
         "source_record_id": "rss:feed:article-1",
-        "architecture_matches": ["microservices"],
         "source": {
             "source_id": "rss",
             "source_type": "article",
             "url": "https://example.org/article",
             "title": "Architecture report",
             "content_excerpt": "The microservices architecture improved independent deployment speed across product teams.",
+            "published_at": None,
+            "retrieved_at": "2026-11-13T00:00:00Z",
         },
+        "observed_at": "2026-11-13T00:00:00Z",
+        "category": "microservices",
+        "architecture_matches": ["microservices"],
+        "ecosystem": "cross_ecosystem",
+        "claim": "Discovery metadata only.",
+        "claim_type": "discovery_candidate",
+        "evidence_status": "unverified",
+        "evidence_notes": "Needs review.",
+        "tags": [],
+        "metrics": {},
     }
     (data_dir / f"{AS_OF.isoformat()}.jsonl").write_text(
         json.dumps(source_observation) + "\n", encoding="utf-8"

@@ -208,7 +208,7 @@ def generate_evidence_assessment(
 ) -> dict[str, Any]:
     """Write per-observation assessments plus a human-readable summary."""
     report_date = as_of or datetime.now(UTC).date()
-    records = load_observations(data_dir or root / "data" / "observations")
+    records = load_observations(data_dir or root / "data" / "observations", as_of=report_date)
     assessments = assess_observations(records)
     markdown, summary = render_evidence_summary(assessments, report_date)
     destination = output_dir or root / "reports" / "evidence"

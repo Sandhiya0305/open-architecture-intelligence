@@ -6,14 +6,37 @@ from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
-from oai_intelligence.validation import PROJECT_ROOT
+from jsonschema import ValidationError
+
+from oai_intelligence.migrations import migrate_observation_record
+from oai_intelligence.validation import PROJECT_ROOT, validate_observation
 
 
-def load_observations(data_dir: Path) -> list[dict[str, Any]]:
-    """Load JSONL observations in chronological source-independent order."""
+def load_observations(data_dir: Path, as_of: date | None = None) -> list[dict[str, Any]]:
+    """Load, migrate, and validate append-only JSONL observations."""
     records: list[dict[str, Any]] = []
     if not data_dir.exists():
         return records
+    for path in sorted(data_dir.glob("*.jsonl")):
+        if as_of is not None and path.stem > as_of.isoformat():
+            continue
+        with path.open(encoding="utf-8") as stream:
+            for line_number, line in enumerate(stream, start=1):
+                if not line.strip():
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise ValueError(f"Invalid JSON in {path}:{line_number}: {exc}") from exc
+                if not isinstance(record, dict):
+                    raise TypeError(f"Expected an observation object in {path}:{line_number}.")
+                try:
+                    migrated = migrate_observation_record(record)
+                    validate_observation(migrated)
+                except (TypeError, ValueError, ValidationError) as exc:
+                    raise ValueError(f"Invalid observation in {path}:{line_number}: {exc}") from exc
+                records.append(migrated)
+    return records
     for path in sorted(data_dir.glob("*.jsonl")):
         with path.open(encoding="utf-8") as stream:
             for line_number, line in enumerate(stream, start=1):

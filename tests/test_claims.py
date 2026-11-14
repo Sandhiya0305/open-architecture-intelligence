@@ -1,4 +1,4 @@
-﻿import json
+import json
 from datetime import date
 from pathlib import Path
 
@@ -16,6 +16,7 @@ def observation(
     source_type="article",
 ):
     return {
+        "schema_version": 1,
         "observation_id": observation_id,
         "source_record_id": f"rss:feed:{observation_id}",
         "source": {
@@ -24,8 +25,19 @@ def observation(
             "url": f"https://publisher.example/{observation_id}",
             "title": "Architecture case study",
             "content_excerpt": excerpt,
+            "published_at": None,
+            "retrieved_at": "2026-11-13T00:00:00Z",
         },
+        "observed_at": "2026-11-13T00:00:00Z",
+        "category": "microservices",
         "architecture_matches": ["microservices"],
+        "ecosystem": "cross_ecosystem",
+        "claim": "Discovery metadata only.",
+        "claim_type": "discovery_candidate",
+        "evidence_status": "unverified",
+        "evidence_notes": "Needs review.",
+        "tags": [],
+        "metrics": {},
     }
 
 
@@ -42,16 +54,24 @@ def test_extracts_architecture_specific_sentence_with_source_provenance():
 
 def test_excludes_repository_descriptions_and_discussion_posts():
     sentence = "The microservices architecture improved independent deployment speed across product teams."
-    assert extract_claim_candidates(observation(source_id="github", source_type="repository", excerpt=sentence)) == []
-    assert extract_claim_candidates(observation(source_id="hacker_news", source_type="discussion", excerpt=sentence)) == []
+    assert extract_claim_candidates(
+        observation(source_id="github", source_type="repository", excerpt=sentence)
+    ) == []
+    assert extract_claim_candidates(
+        observation(source_id="hacker_news", source_type="discussion", excerpt=sentence)
+    ) == []
 
 
 def test_does_not_infer_claim_from_metadata_or_non_architecture_sentence():
-    assert extract_claim_candidates(observation(excerpt="The team improved release speed across product teams.")) == []
+    assert extract_claim_candidates(
+        observation(excerpt="The team improved release speed across product teams.")
+    ) == []
 
 
 def test_strips_html_and_entities_before_extraction():
-    item = observation(excerpt="<p>The microservices architecture improved independent deployment speed across product teams&#x27; services.</p>")
+    item = observation(
+        excerpt="<p>The microservices architecture improved independent deployment speed across product teams&#x27; services.</p>"
+    )
     claims = extract_claim_candidates(item)
     assert len(claims) == 1
     assert "<p>" not in claims[0]["claim_text"]
@@ -60,7 +80,9 @@ def test_strips_html_and_entities_before_extraction():
 
 
 def test_rejects_truncated_sentence():
-    item = observation(excerpt="The microservices architecture improved independent deployment speed across product teams...")
+    item = observation(
+        excerpt="The microservices architecture improved independent deployment speed across product teams..."
+    )
     assert extract_claim_candidates(item) == []
 
 

@@ -1,4 +1,4 @@
-﻿"""Canonical observation construction and validation."""
+"""Canonical observation construction and validation."""
 
 import hashlib
 import re
@@ -59,6 +59,7 @@ def repository_observation(
     license_info = repository.get("license") or {}
 
     observation = {
+        "schema_version": 1,
         "observation_id": observation_id,
         "source_record_id": f"github:{full_name}",
         "source": {
@@ -125,6 +126,7 @@ def discussion_observation(
     observation_id = hashlib.sha256(identity.encode("utf-8")).hexdigest()
 
     observation = {
+        "schema_version": 1,
         "observation_id": observation_id,
         "source_record_id": f"hacker_news:{object_id}",
         "source": {
@@ -186,6 +188,7 @@ def article_observation(
     publisher = str(article.get("publisher") or article.get("feed_title") or feed_id)
 
     observation = {
+        "schema_version": 1,
         "observation_id": observation_id,
         "source_record_id": f"rss:{feed_id}:{entry_id}",
         "source": {
@@ -216,4 +219,3 @@ def article_observation(
     }
     validate_observation(observation)
     return observation
-

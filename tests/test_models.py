@@ -27,6 +27,7 @@ def test_repository_is_classified_and_validated() -> None:
     observation = repository_observation(
         repository, "python", taxonomy, datetime(2026, 11, 13, tzinfo=UTC)
     )
+    assert observation["schema_version"] == 1
     assert observation["category"] == "clean-architecture"
     assert observation["evidence_status"] == "unverified"
     assert observation["claim_type"] == "discovery_candidate"

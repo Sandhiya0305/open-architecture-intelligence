@@ -1,4 +1,4 @@
-﻿"""Conservative extraction of architecture-specific statements from publisher articles."""
+"""Conservative extraction of architecture-specific statements from publisher articles."""
 
 import hashlib
 import html
@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from oai_intelligence.reports import load_observations
 from oai_intelligence.review import latest_review_decisions
 from oai_intelligence.validation import PROJECT_ROOT, validate_claim
 
@@ -185,22 +186,7 @@ def generate_claim_review_queue(
     output_dir = output_dir or PROJECT_ROOT / "reports" / "claims"
     reviews_file = reviews_file or PROJECT_ROOT / "data" / "reviews" / "claim-decisions.jsonl"
     as_of = as_of or datetime.now(UTC).date()
-    observations = []
-    for path in sorted(data_dir.glob("*.jsonl")):
-        if path.stem > as_of.isoformat():
-            continue
-        with path.open(encoding="utf-8") as stream:
-            for line_number, line in enumerate(stream, start=1):
-                if not line.strip():
-                    continue
-                try:
-                    item = json.loads(line)
-                except json.JSONDecodeError as exc:
-                    raise ValueError(f"Invalid JSONL in {path} at line {line_number}: {exc}") from exc
-                if not isinstance(item, dict) or "observation_id" not in item:
-                    raise ValueError(f"Invalid observation in {path} at line {line_number}.")
-                observations.append(item)
-
+    observations = load_observations(data_dir, as_of=as_of)
     queue = build_review_queue(observations)
     decisions = latest_review_decisions(reviews_file)
     for claim in queue:
@@ -253,4 +239,3 @@ def generate_claim_review_queue(
         "json": str(json_path),
         "markdown": str(markdown_path),
     }
-
