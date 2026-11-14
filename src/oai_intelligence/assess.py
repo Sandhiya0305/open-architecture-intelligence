@@ -1,13 +1,13 @@
-"""Conservative evidence assessment without automatically upgrading claims."""
+"""Assess source-linked architecture statements without automatically verifying them."""
 
 import json
-import re
 from collections import defaultdict
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from oai_intelligence.claims import extract_claim_candidates
 from oai_intelligence.reports import load_observations
 from oai_intelligence.validation import PROJECT_ROOT
 
@@ -23,13 +23,8 @@ BENCHMARK_FIELDS = (
 )
 
 
-def _normalized_claim(claim: str) -> str:
-    return re.sub(r"\s+", " ", claim.casefold()).strip()
-
-
-def _publisher_domain(url: str) -> str:
-    hostname = (urlsplit(url).hostname or "").casefold()
-    return hostname.removeprefix("www.")
+def _publisher_host(url: str) -> str:
+    return (urlsplit(url).hostname or "").casefold().removeprefix("www.")
 
 
 def _has_value(value: Any) -> bool:
@@ -43,72 +38,109 @@ def _has_value(value: Any) -> bool:
 
 
 def assess_observations(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Assess provenance, source activity, corroboration, and benchmark completeness."""
-    claim_sources: dict[tuple[str, tuple[str, ...], str], set[str]] = defaultdict(set)
+    """Assess extracted article statements and benchmark completeness, not boilerplate claims."""
+    extracted_by_observation: dict[str, list[dict[str, Any]]] = {}
+    statement_hosts: dict[tuple[str, tuple[str, ...]], set[str]] = defaultdict(set)
+
     for record in records:
-        source = record.get("source", {})
-        claim = _normalized_claim(record.get("claim", ""))
-        architectures = tuple(sorted(set(record.get("architecture_matches", []))))
-        claim_type = record.get("claim_type", "other")
-        domain = _publisher_domain(source.get("url", ""))
-        if claim and domain:
-            claim_sources[(claim, architectures, claim_type)].add(domain)
+        observation_id = str(record.get("observation_id") or "")
+        candidates = extract_claim_candidates(record)
+        extracted_by_observation[observation_id] = candidates
+        host = _publisher_host(str(record.get("source", {}).get("url") or ""))
+        for candidate in candidates:
+            key = (candidate["normalized_claim"], tuple(candidate["architecture_ids"]))
+            if host:
+                statement_hosts[key].add(host)
 
     assessments: list[dict[str, Any]] = []
     for record in records:
         source = record.get("source", {})
         metrics = record.get("metrics", {})
         evidence = record.get("evidence_details", {})
-        claim = _normalized_claim(record.get("claim", ""))
-        architectures = tuple(sorted(set(record.get("architecture_matches", []))))
+        candidates = extracted_by_observation.get(str(record.get("observation_id") or ""), [])
+        host = _publisher_host(str(source.get("url") or ""))
+        matching_hosts: set[str] = set()
+        for candidate in candidates:
+            key = (candidate["normalized_claim"], tuple(candidate["architecture_ids"]))
+            matching_hosts.update(statement_hosts.get(key, set()) - ({host} if host else set()))
+
         claim_type = record.get("claim_type", "other")
-        domain = _publisher_domain(source.get("url", ""))
-        independent_domains = sorted(
-            claim_sources.get((claim, architectures, claim_type), set()) - {domain}
-        )
+        is_performance = claim_type == "performance_claim" or source.get("source_type") == "benchmark"
         missing_benchmark_fields = [
             field for field in BENCHMARK_FIELDS if not _has_value(evidence.get(field))
         ]
-        is_performance = claim_type == "performance_claim" or source.get("source_type") == "benchmark"
-        is_rejected = record.get("evidence_status") == "rejected"
+        original_status = record.get("evidence_status", "unknown")
 
-        if is_rejected:
+        if original_status == "rejected":
             disposition = "rejected_existing_record"
             rationale = "The observation is already marked rejected; this assessment does not reverse that decision."
         elif is_performance and missing_benchmark_fields:
             disposition = "benchmark_incomplete"
-            rationale = "Performance evidence is incomplete; missing methodology fields prevent a meaningful comparison."
+            rationale = (
+                "Performance evidence is incomplete. Required workload, environment, hardware, "
+                "versions, methodology, results, measurement date, and source are not all present."
+            )
         elif is_performance:
-            disposition = "benchmark_ready_for_human_review"
-            rationale = "All required benchmark fields are present, but their accuracy and methodology still require human review."
-        elif independent_domains:
-            disposition = "independent_source_match"
-            rationale = "An exact matching claim appears on another publisher domain; this is a corroboration lead, not proof."
+            disposition = "benchmark_complete_for_human_review"
+            rationale = (
+                "Required benchmark fields are present. Their accuracy, comparability, and "
+                "methodological quality still require human review."
+            )
+        elif matching_hosts:
+            disposition = "cross_host_match_review_lead"
+            rationale = (
+                "An exact extracted statement appears on other hostnames. This does not establish "
+                "independent ownership, source independence, or truth."
+            )
+        elif candidates:
+            disposition = "unverified_extracted_statement"
+            rationale = (
+                "An architecture-specific statement was extracted from article text. The full "
+                "source, author perspective, context, and supporting evidence remain unreviewed."
+            )
         else:
-            disposition = "unverified"
-            rationale = "No independent exact-claim match or complete benchmark record was identified."
+            disposition = "no_extractable_architecture_statement"
+            rationale = (
+                "No complete architecture-specific outcome, limitation, or decision statement "
+                "was extracted. Repository metadata and discussion activity are not technical evidence."
+            )
 
         assessments.append(
             {
                 "observation_id": record.get("observation_id", ""),
                 "source_record_id": record.get("source_record_id", ""),
-                "source_domain": domain or None,
+                "source_host": host or None,
+                "source_type": source.get("source_type"),
                 "claim_type": claim_type,
-                "architecture_matches": list(architectures),
+                "architecture_matches": sorted(set(record.get("architecture_matches", []))),
+                "extracted_statements": [
+                    {
+                        "claim_id": candidate["claim_id"],
+                        "text": candidate["claim_text"],
+                        "kinds": candidate["claim_kinds"],
+                    }
+                    for candidate in candidates
+                ],
+                "matching_source_hosts": sorted(matching_hosts),
                 "source_activity": {
                     "stars": metrics.get("stars"),
                     "forks": metrics.get("forks"),
                     "discussion_points": metrics.get("points"),
                     "discussion_comments": metrics.get("comment_count"),
-                    "interpretation": "discovery metadata only; not evidence of technical correctness or performance",
+                    "interpretation": (
+                        "discovery metadata only; not evidence of technical correctness, "
+                        "architecture outcomes, or performance"
+                    ),
                 },
-                "independent_matching_domains": independent_domains,
                 "benchmark": {
                     "applicable": is_performance,
                     "missing_fields": missing_benchmark_fields if is_performance else [],
                     "complete": is_performance and not missing_benchmark_fields,
+                    "provided_fields": sorted(
+                        field for field in BENCHMARK_FIELDS if _has_value(evidence.get(field))
+                    ),
                 },
-                "original_evidence_status": record.get("evidence_status", "unknown"),
+                "original_evidence_status": original_status,
                 "disposition": disposition,
                 "rationale": rationale,
                 "assessed_at": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
@@ -117,24 +149,34 @@ def assess_observations(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return assessments
 
 
-def render_evidence_summary(assessments: list[dict[str, Any]], as_of: date) -> tuple[str, dict[str, Any]]:
+def render_evidence_summary(
+    assessments: list[dict[str, Any]], as_of: date
+) -> tuple[str, dict[str, Any]]:
     counts: dict[str, int] = {}
+    extracted_count = 0
     for assessment in assessments:
         disposition = assessment["disposition"]
         counts[disposition] = counts.get(disposition, 0) + 1
+        extracted_count += len(assessment["extracted_statements"])
+
     data = {
         "as_of": as_of.isoformat(),
         "assessment_count": len(assessments),
+        "extracted_statement_count": extracted_count,
         "dispositions": dict(sorted(counts.items())),
-        "benchmark_ready_for_human_review": counts.get("benchmark_ready_for_human_review", 0),
+        "benchmark_complete_for_human_review": counts.get("benchmark_complete_for_human_review", 0),
         "benchmark_incomplete": counts.get("benchmark_incomplete", 0),
-        "independent_source_matches": counts.get("independent_source_match", 0),
-        "note": "Assessments are review guidance. They do not alter original observations or promote evidence status.",
+        "cross_host_match_review_leads": counts.get("cross_host_match_review_lead", 0),
+        "note": (
+            "Assessments are review guidance. Hostname matches do not prove independent "
+            "corroboration, and no assessment automatically changes evidence status."
+        ),
     }
     lines = [
         f"# Evidence Assessment Summary - {as_of.isoformat()}",
         "",
         f"**Observations assessed:** {len(assessments)}",
+        f"**Architecture-specific statements extracted:** {extracted_count}",
         "",
         "## Assessment outcomes",
         "",
@@ -148,9 +190,10 @@ def render_evidence_summary(assessments: list[dict[str, Any]], as_of: date) -> t
         "## Interpretation safeguards",
         "",
         "- Original observations are immutable; assessment output is stored separately.",
-        "- An exact claim match across publisher domains is a lead for review, not proof that the claim is true.",
+        "- Extracted statements are leads for source review, not verified facts.",
+        "- Matching hostnames do not establish independent ownership or corroboration.",
         "- Stars, forks, points, and comments are source-activity metadata, never performance evidence.",
-        "- Benchmark completeness checks field presence only. It does not validate experimental quality, correctness, or reproducibility.",
+        "- Benchmark completeness checks field presence only; it does not validate experimental quality or reproducibility.",
         "- No assessment automatically changes evidence_status or approves a knowledge-base update.",
         "",
     ]
@@ -184,6 +227,7 @@ def generate_evidence_assessment(
         "as_of": stem,
         "observations_loaded": len(records),
         "assessments_written": len(assessments),
+        "extracted_statements": summary["extracted_statement_count"],
         "dispositions": summary["dispositions"],
         "jsonl": str(jsonl_path),
         "json": str(json_path),

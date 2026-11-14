@@ -82,7 +82,7 @@ def _escape_markdown(value: str) -> str:
 def extract_claim_candidates(observation: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract review leads only from curated article text, never metadata or discussion."""
     source = observation.get("source", {})
-    if source.get("source_type") != "article" or source.get("source_id") != "rss":
+    if source.get("source_type") != "article":
         return []
 
     excerpt = _clean_text(str(source.get("content_excerpt") or ""))
@@ -253,3 +253,4 @@ def generate_claim_review_queue(
         "json": str(json_path),
         "markdown": str(markdown_path),
     }
+

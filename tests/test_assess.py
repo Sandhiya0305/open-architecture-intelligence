@@ -2,17 +2,14 @@ import json
 from datetime import date
 from pathlib import Path
 
-from oai_intelligence.assess import (
-    assess_observations,
-    generate_evidence_assessment,
-)
+from oai_intelligence.assess import assess_observations, generate_evidence_assessment
 from oai_intelligence.validation import validate_observation
 
 
 def record(
     observation_id: str,
     domain: str,
-    claim: str = "The system reduced request latency by 20 percent.",
+    claim: str = "The microservices architecture improved request latency by 20 percent.",
     claim_type: str = "performance_claim",
     evidence_details=None,
 ):
@@ -24,6 +21,7 @@ def record(
             "source_type": "article",
             "url": f"https://{domain}/article",
             "title": "Architecture report",
+            "content_excerpt": claim,
             "published_at": None,
             "retrieved_at": "2026-11-13T00:00:00Z",
         },
@@ -31,7 +29,7 @@ def record(
         "category": "microservices",
         "architecture_matches": ["microservices"],
         "ecosystem": "cross_ecosystem",
-        "claim": claim,
+        "claim": "Repository metadata matched configured architecture discovery terms.",
         "claim_type": claim_type,
         "evidence_status": "unverified",
         "evidence_notes": "Needs review.",
@@ -42,8 +40,7 @@ def record(
 
 
 def test_performance_claim_missing_methodology_fields_is_incomplete():
-    results = assess_observations([record("a", "example.com")])
-    assessment = results[0]
+    assessment = assess_observations([record("a", "example.com")])[0]
 
     assert assessment["disposition"] == "benchmark_incomplete"
     assert "workload" in assessment["benchmark"]["missing_fields"]
@@ -63,41 +60,58 @@ def test_complete_benchmark_is_only_ready_for_human_review():
         "measurement_date": "2026-11-10",
         "source_url": "https://benchmarks.example.com/run-1",
     }
-    results = assess_observations([record("a", "benchmark.example", evidence_details=details)])
+    assessment = assess_observations(
+        [record("a", "benchmark.example", evidence_details=details)]
+    )[0]
 
-    assert results[0]["disposition"] == "benchmark_ready_for_human_review"
-    assert results[0]["benchmark"]["complete"] is True
+    assert assessment["disposition"] == "benchmark_complete_for_human_review"
+    assert assessment["benchmark"]["complete"] is True
 
 
-def test_exact_claim_on_independent_domains_is_only_a_review_lead():
+def test_exact_architecture_statement_on_different_hosts_is_only_a_review_lead():
+    statement = "The microservices architecture improved request latency by 20 percent."
     records = [
-        record("a", "publisher-one.example", claim_type="architecture_description"),
-        record("b", "publisher-two.example", claim_type="architecture_description"),
+        record("a", "publisher-one.example", claim=statement, claim_type="architecture_description"),
+        record("b", "publisher-two.example", claim=statement, claim_type="architecture_description"),
     ]
     results = assess_observations(records)
 
-    assert all(item["disposition"] == "independent_source_match" for item in results)
-    assert results[0]["independent_matching_domains"] == ["publisher-two.example"]
+    assert all(item["disposition"] == "cross_host_match_review_lead" for item in results)
+    assert results[0]["matching_source_hosts"] == ["publisher-two.example"]
+    assert "independent ownership" in results[0]["rationale"]
 
 
-def test_same_publisher_does_not_count_as_independent_corroboration():
+def test_same_host_does_not_count_as_cross_host_match():
+    statement = "The microservices architecture improved request latency by 20 percent."
     records = [
-        record("a", "same.example", claim_type="architecture_description"),
-        record("b", "same.example", claim_type="architecture_description"),
+        record("a", "same.example", claim=statement, claim_type="architecture_description"),
+        record("b", "same.example", claim=statement, claim_type="architecture_description"),
     ]
     results = assess_observations(records)
 
-    assert all(item["disposition"] == "unverified" for item in results)
+    assert all(item["disposition"] == "unverified_extracted_statement" for item in results)
+    assert all(item["matching_source_hosts"] == [] for item in results)
 
 
-def test_different_claims_do_not_corroborate_each_other():
+def test_different_claims_do_not_match():
     records = [
-        record("a", "publisher-one.example", claim="Architecture A improves throughput."),
-        record("b", "publisher-two.example", claim="Architecture B improves throughput."),
+        record("a", "publisher-one.example", claim="The microservices architecture improved request latency by 20 percent."),
+        record("b", "publisher-two.example", claim="The layered architecture improved maintainability across teams."),
     ]
     results = assess_observations(records)
 
     assert all(item["disposition"] == "benchmark_incomplete" for item in results)
+    assert all(item["matching_source_hosts"] == [] for item in results)
+
+
+def test_boilerplate_observation_claim_is_not_used_as_evidence():
+    item = record("a", "example.com", claim="The weather was sunny yesterday.", claim_type="architecture_description")
+    item["claim"] = "A repository matched configured search terms."
+
+    assessment = assess_observations([item])[0]
+
+    assert assessment["disposition"] == "no_extractable_architecture_statement"
+    assert assessment["extracted_statements"] == []
 
 
 def test_rejected_record_remains_rejected():
@@ -148,6 +162,7 @@ def test_generate_assessments_writes_jsonl_and_summary(tmp_path: Path):
     )
 
     assert result["assessments_written"] == 1
+    assert result["extracted_statements"] == 1
     assert Path(result["jsonl"]).exists()
     assert Path(result["json"]).exists()
     assert Path(result["markdown"]).exists()
