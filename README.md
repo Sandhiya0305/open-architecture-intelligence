@@ -13,9 +13,9 @@ Python tools for collecting software architecture-related source data, maintaini
 - Read configured RSS and Atom feeds.
 - Classify observations using the project taxonomy and validate their structure.
 - Store dated observations as JSON Lines.
-- Generate daily and weekly discovery reports.
+- Generate daily and rolling seven-day observation snapshots.
 - Prepare evidence assessments and source-linked candidate claims.
-- Record review decisions and prepare draft knowledge pull requests.
+- Record authenticated review decisions and prepare draft knowledge pull requests.
 
 Collected activity and candidate claims are not proof of adoption, quality or performance. Knowledge updates require human review.
 
@@ -44,12 +44,10 @@ python -m pip install -e ".[dev]"
 ```bash
 oai status
 oai validate-config
-
 oai discover github --limit 10
 oai discover hacker-news --limit 10
 oai discover rss --limit 10
 oai discover all --limit 10 --dry-run
-
 oai report trends --period daily
 oai report trends --period weekly
 oai assess evidence
@@ -57,6 +55,22 @@ oai claims review-queue
 ```
 
 Set `GITHUB_TOKEN` in the environment to use the authenticated GitHub API quota. Do not commit credentials or tokens.
+
+### Review a candidate
+
+Review decisions require `OAI_REVIEW_TOKEN`, a GitHub token belonging to the reviewer. OAI checks the token against GitHub's authenticated-user endpoint and requires the supplied reviewer login to match the returned account. A review also requires an explicit attestation that the linked source was opened and checked:
+
+```bash
+oai claims review <claim-id> \
+  --decision approve \
+  --reviewer <github-login> \
+  --note "Source context and limitations checked." \
+  --source-checked
+```
+
+The source-check field records the reviewer's attestation; it is not independent proof that the source was read. An approval remains editorial approval, not technical verification.
+
+Publishing a draft pull request to the knowledge repository uses a separate `OAI_GITHUB_TOKEN` with access to that repository. It is not interchangeable with the review token.
 
 Run tests and lint checks:
 
@@ -68,14 +82,16 @@ ruff check .
 ## Data and configuration
 
 - `config/` — source registry, taxonomy and discovery queries.
-- `schema/` — JSON schemas for observations, claims and review decisions.
+- `schema/` — versioned JSON schemas for observations, claims and review decisions.
 - `src/oai_intelligence/` — collectors, pipeline, validation, reports and review tools.
 - `tests/` — automated tests.
-- `data/observations/` — dated observation records.
-- `data/reviews/` — human review decisions.
+- `data/observations/` — append-only observation records.
+- `data/reviews/` — append-only human review decisions.
 - `reports/` — generated discovery, evidence and claim reports.
 
-The daily GitHub Actions workflow runs discovery and report generation. It does not automatically approve claims or merge knowledge changes. Cross-repository draft pull requests require the documented repository secret and variable configuration in the workflow.
+Observation records are schema-versioned. Older records are normalized in memory when loaded; the original append-only JSONL history is not rewritten.
+
+The daily GitHub Actions workflow runs discovery and report generation. It continues with available sources when an individual collector fails and reports partial failures. It does not automatically approve claims or merge knowledge changes. Cross-repository draft pull requests require the documented repository secret and variable configuration in the workflow.
 
 ## Contributing
 

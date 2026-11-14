@@ -4,10 +4,25 @@ from pathlib import Path
 
 import pytest
 
-from oai_intelligence.review import prepare_knowledge_candidates, record_claim_review
+from oai_intelligence import review
+from oai_intelligence.review import (
+    ReviewAuthenticationError,
+    prepare_knowledge_candidates,
+    record_claim_review,
+)
 
 AS_OF = date(2026, 11, 13)
 CLAIM_ID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+
+@pytest.fixture(autouse=True)
+def authenticated_reviewer(monkeypatch):
+    monkeypatch.setenv("OAI_REVIEW_TOKEN", "test-token")
+    monkeypatch.setattr(
+        review,
+        "_authenticated_github_user",
+        lambda token: {"login": "reviewer", "id": 123456},
+    )
 
 
 def setup_queue(tmp_path: Path) -> tuple[Path, Path]:
@@ -28,28 +43,65 @@ def setup_queue(tmp_path: Path) -> tuple[Path, Path]:
     return queue_dir, tmp_path / "reviews" / "decisions.jsonl"
 
 
-def test_review_decision_is_appended_with_reviewer_and_note(tmp_path: Path):
+def test_review_decision_is_authenticated_and_records_source_attestation(tmp_path: Path):
     queue_dir, reviews_file = setup_queue(tmp_path)
     result = record_claim_review(
-        CLAIM_ID, "approve", "reviewer@example.org", "Source context checked.",
-        queue_dir, reviews_file, AS_OF,
+        CLAIM_ID, "approve", "reviewer", "Source and context checked.",
+        queue_dir, reviews_file, AS_OF, source_checked=True,
     )
 
     saved = json.loads(reviews_file.read_text(encoding="utf-8").strip())
     assert saved == result
+    assert saved["schema_version"] == 1
     assert saved["decision"] == "approve"
-    assert saved["reviewer"] == "reviewer@example.org"
+    assert saved["reviewer"] == "reviewer"
+    assert saved["reviewer_id"] == 123456
+    assert saved["source_checked"] is True
+    assert saved["reviewed_source_url"] == "https://example.org/case-study"
+
+
+def test_missing_review_token_is_rejected(tmp_path: Path, monkeypatch):
+    queue_dir, reviews_file = setup_queue(tmp_path)
+    monkeypatch.delenv("OAI_REVIEW_TOKEN")
+    with pytest.raises(ReviewAuthenticationError, match="OAI_REVIEW_TOKEN"):
+        record_claim_review(
+            CLAIM_ID, "approve", "reviewer", "Checked.", queue_dir, reviews_file,
+            AS_OF, source_checked=True,
+        )
+
+
+def test_reviewer_must_match_authenticated_github_account(tmp_path: Path):
+    queue_dir, reviews_file = setup_queue(tmp_path)
+    with pytest.raises(ReviewAuthenticationError, match="must match"):
+        record_claim_review(
+            CLAIM_ID, "approve", "not-the-reviewer", "Checked.", queue_dir, reviews_file,
+            AS_OF, source_checked=True,
+        )
+
+
+def test_source_check_attestation_is_required(tmp_path: Path):
+    queue_dir, reviews_file = setup_queue(tmp_path)
+    with pytest.raises(ValueError, match="--source-checked"):
+        record_claim_review(
+            CLAIM_ID, "approve", "reviewer", "Checked.", queue_dir, reviews_file, AS_OF
+        )
 
 
 def test_unknown_claim_cannot_be_reviewed(tmp_path: Path):
     queue_dir, reviews_file = setup_queue(tmp_path)
     with pytest.raises(ValueError, match="not present"):
-        record_claim_review("unknown", "approve", "reviewer", "Checked", queue_dir, reviews_file, AS_OF)
+        record_claim_review(
+            "unknown", "approve", "reviewer", "Checked.", queue_dir, reviews_file,
+            AS_OF, source_checked=True,
+        )
 
 
-def test_knowledge_bundle_includes_only_human_approved_claims_and_keeps_unverified_label(tmp_path: Path):
+def test_knowledge_bundle_includes_only_authenticated_approvals(tmp_path: Path):
     queue_dir, reviews_file = setup_queue(tmp_path)
-    record_claim_review(CLAIM_ID, "approve", "reviewer", "Relevant source.", queue_dir, reviews_file, AS_OF)
+    record_claim_review(
+        CLAIM_ID, "approve", "reviewer", "Relevant source.", queue_dir, reviews_file,
+        AS_OF, source_checked=True,
+    )
     result = prepare_knowledge_candidates(
         queue_dir=queue_dir, reviews_file=reviews_file,
         output_dir=tmp_path / "output", as_of=AS_OF,
@@ -60,11 +112,15 @@ def test_knowledge_bundle_includes_only_human_approved_claims_and_keeps_unverifi
     assert "Evidence status: **UNVERIFIED**" in content
     assert "https://example.org/case-study" in content
     assert "reviewer" in content
+    assert "Source checked: https://example.org/case-study" in content
 
 
 def test_no_approved_claims_produces_empty_candidate_bundle(tmp_path: Path):
     queue_dir, reviews_file = setup_queue(tmp_path)
-    record_claim_review(CLAIM_ID, "needs-evidence", "reviewer", "Need methodology.", queue_dir, reviews_file, AS_OF)
+    record_claim_review(
+        CLAIM_ID, "needs-evidence", "reviewer", "Need methodology.", queue_dir, reviews_file,
+        AS_OF, source_checked=True,
+    )
     result = prepare_knowledge_candidates(
         queue_dir=queue_dir, reviews_file=reviews_file,
         output_dir=tmp_path / "output", as_of=AS_OF,
@@ -75,8 +131,14 @@ def test_no_approved_claims_produces_empty_candidate_bundle(tmp_path: Path):
 
 def test_later_review_decision_supersedes_earlier_decision(tmp_path: Path):
     queue_dir, reviews_file = setup_queue(tmp_path)
-    record_claim_review(CLAIM_ID, "approve", "reviewer", "Initially approved.", queue_dir, reviews_file, AS_OF)
-    record_claim_review(CLAIM_ID, "reject", "reviewer", "New source context invalidates it.", queue_dir, reviews_file, AS_OF)
+    record_claim_review(
+        CLAIM_ID, "approve", "reviewer", "Initially approved.", queue_dir, reviews_file,
+        AS_OF, source_checked=True,
+    )
+    record_claim_review(
+        CLAIM_ID, "reject", "reviewer", "New source context invalidates it.",
+        queue_dir, reviews_file, AS_OF, source_checked=True,
+    )
     result = prepare_knowledge_candidates(
         queue_dir=queue_dir, reviews_file=reviews_file,
         output_dir=tmp_path / "output", as_of=AS_OF,
@@ -123,7 +185,7 @@ def test_regenerated_claim_queue_reflects_latest_human_decision(tmp_path: Path):
     claim = json.loads(Path(result["json"]).read_text(encoding="utf-8"))[0]
     record_claim_review(
         claim["claim_id"], "approve", "reviewer", "Source and context checked.",
-        queue_dir, reviews_file, AS_OF,
+        queue_dir, reviews_file, AS_OF, source_checked=True,
     )
     refreshed = generate_claim_review_queue(data_dir, queue_dir, AS_OF, reviews_file)
     refreshed_claim = json.loads(Path(refreshed["json"]).read_text(encoding="utf-8"))[0]

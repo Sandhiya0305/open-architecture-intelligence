@@ -1,4 +1,4 @@
-"""Command-line interface for Open Architecture Intelligence."""
+﻿"""Command-line interface for Open Architecture Intelligence."""
 
 import argparse
 import json
@@ -64,6 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--decision", choices=["approve", "reject", "needs-evidence"], required=True)
     review.add_argument("--reviewer", required=True)
     review.add_argument("--note", required=True)
+    review.add_argument("--source-checked", action="store_true", required=True, help="Attest that you opened and checked the linked source")
     review.add_argument("--as-of", type=date.fromisoformat, default=None)
     review.add_argument("--queue-dir", type=Path, default=None)
     review.add_argument("--reviews-file", type=Path, default=None)
@@ -133,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
             result = record_claim_review(
                 claim_id=args.claim_id, decision=args.decision, reviewer=args.reviewer,
                 note=args.note, queue_dir=args.queue_dir, reviews_file=args.reviews_file,
-                as_of=args.as_of,
+                as_of=args.as_of, source_checked=args.source_checked,
             )
             print(json.dumps(result, indent=2))
         elif args.command == "claims" and args.claims_command == "prepare-knowledge":
@@ -173,3 +174,6 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+

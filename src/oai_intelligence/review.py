@@ -1,6 +1,9 @@
-"""Append-only human decisions and safe knowledge-candidate preparation."""
+﻿"""Authenticated, append-only human decisions and knowledge-candidate preparation."""
 
 import json
+import os
+import urllib.error
+import urllib.request
 import uuid
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -9,6 +12,40 @@ from typing import Any
 from oai_intelligence.validation import PROJECT_ROOT, validate_review_decision
 
 _ALLOWED_DECISIONS = {"approve", "reject", "needs-evidence"}
+GITHUB_USER_API = "https://api.github.com/user"
+
+
+class ReviewAuthenticationError(ValueError):
+    """Raised when a review cannot be tied to an authenticated GitHub account."""
+
+
+def _authenticated_github_user(token: str) -> dict[str, Any]:
+    request = urllib.request.Request(
+        GITHUB_USER_API,
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {token}",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "Open-Architecture-Intelligence",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            payload = json.loads(response.read(64 * 1024 + 1))
+    except urllib.error.HTTPError as exc:
+        raise ReviewAuthenticationError(
+            f"GitHub could not authenticate the review token (HTTP {exc.code})."
+        ) from exc
+    except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        raise ReviewAuthenticationError(f"Could not verify the GitHub reviewer: {exc}") from exc
+
+    if (
+        not isinstance(payload, dict)
+        or not isinstance(payload.get("login"), str)
+        or not isinstance(payload.get("id"), int)
+    ):
+        raise ReviewAuthenticationError("GitHub returned an invalid authenticated-user response.")
+    return {"login": payload["login"], "id": payload["id"]}
 
 
 def _escape_markdown(value: str) -> str:
@@ -46,12 +83,29 @@ def record_claim_review(
     queue_dir: Path | None = None,
     reviews_file: Path | None = None,
     as_of: date | None = None,
+    source_checked: bool = False,
+    token: str | None = None,
 ) -> dict[str, Any]:
-    """Append a human decision; never modify the generated claim or observation."""
+    """Append a decision tied to the authenticated GitHub user and source-check attestation."""
     if decision not in _ALLOWED_DECISIONS:
         raise ValueError(f"Decision must be one of: {', '.join(sorted(_ALLOWED_DECISIONS))}.")
     if not claim_id.strip() or not reviewer.strip() or not note.strip():
         raise ValueError("Claim ID, reviewer, and review note are required.")
+    if source_checked is not True:
+        raise ValueError("Confirm that you opened and checked the linked source with --source-checked.")
+
+    token = token or os.environ.get("OAI_REVIEW_TOKEN")
+    if not token:
+        raise ReviewAuthenticationError(
+            "Set OAI_REVIEW_TOKEN to a GitHub personal access token for the reviewing account."
+        )
+    authenticated_user = _authenticated_github_user(token)
+    if reviewer.casefold() != authenticated_user["login"].casefold():
+        raise ReviewAuthenticationError(
+            f"Reviewer must match the authenticated GitHub account "
+            f"({authenticated_user['login']})."
+        )
+
     as_of = as_of or datetime.now(UTC).date()
     queue_dir = queue_dir or PROJECT_ROOT / "reports" / "claims"
     reviews_file = reviews_file or PROJECT_ROOT / "data" / "reviews" / "claim-decisions.jsonl"
@@ -59,13 +113,22 @@ def record_claim_review(
     if not queue_path.exists():
         raise ValueError(f"Claim queue not found: {queue_path}. Run `oai claims review-queue` first.")
     queue = json.loads(queue_path.read_text(encoding="utf-8"))
-    if not any(item.get("claim_id") == claim_id for item in queue):
+    claim = next((item for item in queue if item.get("claim_id") == claim_id), None)
+    if claim is None:
         raise ValueError(f"Claim ID {claim_id} is not present in {queue_path}.")
+    source_url = claim.get("source_url")
+    if not isinstance(source_url, str) or not source_url.startswith("https://"):
+        raise ValueError("The selected claim does not contain a valid HTTPS source URL.")
+
     record = {
+        "schema_version": 1,
         "review_id": str(uuid.uuid4()),
         "claim_id": claim_id,
         "decision": decision,
-        "reviewer": reviewer.strip(),
+        "reviewer": authenticated_user["login"],
+        "reviewer_id": authenticated_user["id"],
+        "source_checked": True,
+        "reviewed_source_url": source_url,
         "note": note.strip(),
         "reviewed_at": datetime.now(UTC).isoformat(),
     }
@@ -94,7 +157,7 @@ def prepare_knowledge_candidates(
     output_dir: Path | None = None,
     as_of: date | None = None,
 ) -> dict[str, Any]:
-    """Create source-linked, explicitly unverified Markdown for approved candidates only."""
+    """Create source-linked, explicitly unverified Markdown for authenticated approvals only."""
     as_of = as_of or datetime.now(UTC).date()
     queue_dir = queue_dir or PROJECT_ROOT / "reports" / "claims"
     reviews_file = reviews_file or PROJECT_ROOT / "data" / "reviews" / "claim-decisions.jsonl"
@@ -104,7 +167,10 @@ def prepare_knowledge_candidates(
         raise ValueError(f"Claim queue not found: {queue_path}. Run `oai claims review-queue` first.")
     queue = json.loads(queue_path.read_text(encoding="utf-8"))
     decisions = latest_review_decisions(reviews_file)
-    approved = [item for item in queue if decisions.get(item.get("claim_id"), {}).get("decision") == "approve"]
+    approved = [
+        item for item in queue
+        if decisions.get(item.get("claim_id"), {}).get("decision") == "approve"
+    ]
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{as_of.isoformat()}.md"
     lines = [
@@ -112,7 +178,8 @@ def prepare_knowledge_candidates(
         "",
         "> **Evidence status: UNVERIFIED.** Human approval here means editorial approval to propose this candidate, not scientific verification, proof of causality, or a performance finding.",
         "",
-        "Only candidates with an explicit human `approve` decision are included. Original wording is retained as a short excerpt; consult the linked source for full context. No benchmark or comparative conclusion is inferred.",
+        ("Only candidates with an explicit authenticated GitHub review decision are included. " +
+         "The reviewer attests that the linked source was opened and checked. Original wording is retained as a short excerpt; consult the linked source for full context. No benchmark or comparative conclusion is inferred."),
         "",
     ]
     for item in approved:
@@ -126,7 +193,8 @@ def prepare_knowledge_candidates(
             f"- Source: [{_escape_markdown(item['source_title'])}](<{item['source_url']}>)",
             f"- Observation ID: `{item['observation_id']}`",
             f"- Claim ID: `{item['claim_id']}`",
-            f"- Human review: {_escape_markdown(review['reviewer'])} ({review['reviewed_at']})",
+            f"- Human review: {_escape_markdown(review['reviewer'])} (GitHub user ID {review['reviewer_id']}, {review['reviewed_at']})",
+            f"- Source checked: {review['reviewed_source_url']}",
             f"- Review note: {_escape_markdown(review['note'])}",
             "",
         ])
@@ -138,3 +206,4 @@ def prepare_knowledge_candidates(
         "approved_candidates": len(approved),
         "output": str(output_path),
     }
+
