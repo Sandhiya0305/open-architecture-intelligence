@@ -1,5 +1,6 @@
 """Prepare and open a review-only PR in the separate knowledge repository."""
 
+import base64
 import json
 import os
 import re
@@ -17,9 +18,13 @@ class PublishingError(RuntimeError):
     """Raised when a safe knowledge pull request cannot be prepared."""
 
 
-def _git(repo_path: Path, *args: str) -> str:
+def _git(repo_path: Path, *args: str, env: dict[str, str] | None = None) -> str:
+    process_env = os.environ.copy()
+    if env:
+        process_env.update(env)
     result = subprocess.run(
-        ["git", *args], cwd=repo_path, check=False, capture_output=True, text=True
+        ["git", *args], cwd=repo_path, env=process_env,
+        check=False, capture_output=True, text=True,
     )
     if result.returncode:
         raise PublishingError(result.stderr.strip() or result.stdout.strip() or "Git command failed.")
@@ -29,7 +34,7 @@ def _git(repo_path: Path, *args: str) -> str:
 def _github_request(url: str, token: str, payload: dict[str, Any]) -> dict[str, Any]:
     request = urllib.request.Request(
         url,
-        data=json.dumps(payload).encode("utf-8"),
+        data=json.dumps(payload).encode(),
         headers={
             "Accept": "application/vnd.github+json",
             "Authorization": f"Bearer {token}",
@@ -57,7 +62,7 @@ def publish_knowledge_candidates(
     as_of: date | None = None,
 ) -> dict[str, str]:
     """Commit an approved, unverified candidate bundle to a new branch and open a PR."""
-    token = token or os.environ.get("OAI_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    token = token or os.environ.get("OAI_GITHUB_TOKEN")
     if not token:
         raise PublishingError(
             "Set OAI_GITHUB_TOKEN to a fine-grained token with Contents: Read and write "
@@ -91,21 +96,53 @@ def publish_knowledge_candidates(
 
     as_of = as_of or datetime.now(UTC).date()
     branch = f"oai/knowledge-candidates-{as_of:%Y%m%d}"
-    target = repo_path / "evidence" / "candidates" / f"{as_of.isoformat()}.md"
+    target = repo_path / "docs" / "research-candidates" / f"{as_of.isoformat()}.md"
+    index_path = target.parent / "index.md"
     if target.exists():
         raise PublishingError(f"Refusing to overwrite existing knowledge candidate file: {target}")
+
     _git(repo_path, "fetch", "origin", base_branch)
     existing = _git(repo_path, "ls-remote", "--heads", "origin", f"refs/heads/{branch}")
     if existing or _git(repo_path, "branch", "--list", branch):
         raise PublishingError(f"Branch {branch} already exists; inspect it before retrying.")
-    _git(repo_path, "switch", "--create", branch, f"origin/{base_branch}")
-    if target.exists():
-        raise PublishingError(f"Refusing to overwrite existing knowledge candidate file: {target}")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content, encoding="utf-8")
-    _git(repo_path, "add", str(target.relative_to(repo_path)))
-    _git(repo_path, "commit", "-m", f"docs: propose reviewed architecture candidates {as_of.isoformat()}")
-    _git(repo_path, "push", "--set-upstream", "origin", branch)
+
+    original_branch = _git(repo_path, "branch", "--show-current") or base_branch
+    try:
+        _git(repo_path, "switch", "--create", branch, f"origin/{base_branch}")
+        if target.exists():
+            raise PublishingError(f"Refusing to overwrite existing knowledge candidate file: {target}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+        index_text = (
+            index_path.read_text(encoding="utf-8")
+            if index_path.exists()
+            else (
+                "# Reviewed research candidates\n\n"
+                "These source-linked submissions remain unverified. Editorial review does not "
+                "establish technical correctness or performance.\n"
+            )
+        )
+        entry = f"- [{as_of.isoformat()}]({as_of.isoformat()}.md)"
+        if entry not in index_text:
+            index_path.write_text(index_text.rstrip() + "\n\n" + entry + "\n", encoding="utf-8")
+        _git(
+            repo_path, "add",
+            str(target.relative_to(repo_path)),
+            str(index_path.relative_to(repo_path)),
+        )
+        _git(repo_path, "commit", "-m", f"docs: propose reviewed architecture candidates {as_of.isoformat()}")
+        auth = base64.b64encode(f"x-access-token:{token}".encode()).decode("ascii")
+        _git(
+            repo_path, "push", "--set-upstream", "origin", branch,
+            env={
+                "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
+                "GIT_CONFIG_VALUE_0": f"AUTHORIZATION: basic {auth}",
+            },
+        )
+    finally:
+        if _git(repo_path, "branch", "--show-current") == branch:
+            _git(repo_path, "switch", original_branch)
 
     payload = {
         "title": f"OAI: reviewed architecture claim candidates ({as_of.isoformat()})",
