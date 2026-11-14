@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "open-architecture-intelligence"
 version = "0.1.0"
-description = "Evidence-first software architecture discovery and knowledge maintenance engine"
+description = "Tools for collecting and reviewing software architecture source data"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "License not yet selected" }
-authors = [{ name = "Open Architecture Intelligence contributors" }]
+license = { file = "LICENSE" }
+authors = [{ name = "Sandhiya0305" }]
 dependencies = ["PyYAML>=6.0", "jsonschema[format]>=4.22"]
 
 [project.optional-dependencies]

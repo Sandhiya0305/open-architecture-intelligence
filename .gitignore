@@ -1,21 +1,39 @@
+# Python
 __pycache__/
 *.py[cod]
+*.pyd
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
+.coverage.*
 htmlcov/
-dist/
+
+# Build and packaging
 build/
-*.egg-info/
+dist/
+.eggs/
+wheels/
+
+# Virtual environments
 .venv/
 venv/
+ENV/
+
+# Secrets and local configuration
 .env
 .env.*
 !.env.example
+
+# Local databases and logs
 *.db
 *.sqlite
 *.sqlite3
+*.log
+
+# Editors and operating systems
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/
