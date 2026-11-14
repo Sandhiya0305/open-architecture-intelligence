@@ -21,38 +21,72 @@ concurrency:
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       DISCOVERY_LIMIT: ${{ github.event.inputs.limit || '10' }}
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
+
       - name: Install OAI
+        id: install
         run: python -m pip install --upgrade pip && python -m pip install -e .
+
       - name: Discover GitHub repositories
+        id: github_discovery
+        continue-on-error: true
         run: oai discover github --limit "$DISCOVERY_LIMIT"
+
       - name: Discover Hacker News discussions
+        id: hn_discovery
+        continue-on-error: true
         run: oai discover hacker-news --limit "$DISCOVERY_LIMIT"
+
       - name: Discover RSS and Atom articles
+        id: rss_discovery
+        continue-on-error: true
         run: oai discover rss --limit "$DISCOVERY_LIMIT"
-      - name: Generate daily trend report
+
+      - name: Generate daily observation snapshot
+        id: daily_report
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
         run: oai report trends --period daily
-      - name: Generate rolling weekly trend report
+
+      - name: Generate rolling seven-day observation snapshot
+        id: weekly_report
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
         run: oai report trends --period weekly
+
       - name: Assess observation evidence
+        id: evidence_assessment
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
         run: oai assess evidence
 
       - name: Generate claim review queue
+        id: claim_queue
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
         run: oai claims review-queue
-      - name: Prepare human-approved knowledge candidates
+
+      - name: Prepare human-reviewed knowledge candidates
+        id: knowledge_candidates
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
         run: oai claims prepare-knowledge
-      - name: Commit observations, reviews, and generated reports
+
+      - name: Commit partial results and rebase before push
+        id: commit_results
+        if: always() && steps.install.outcome == 'success'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -61,11 +95,13 @@ jobs:
             echo "No new observations or reports to commit."
           else
             git commit -m "data: update observations and intelligence reports"
-            git push
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
           fi
 
       - name: Check out knowledge repository for manual draft PR
-        if: ${{ github.event_name == 'workflow_dispatch' && vars.OAI_ENABLE_KNOWLEDGE_PR == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && vars.OAI_ENABLE_KNOWLEDGE_PR == 'true' && steps.install.outcome == 'success' }}
         uses: actions/checkout@v4
         with:
           repository: Sandhiya0305/open-architecture-knowledge
@@ -74,7 +110,7 @@ jobs:
           token: ${{ secrets.OAI_KNOWLEDGE_TOKEN }}
 
       - name: Open draft knowledge pull request
-        if: ${{ github.event_name == 'workflow_dispatch' && vars.OAI_ENABLE_KNOWLEDGE_PR == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && vars.OAI_ENABLE_KNOWLEDGE_PR == 'true' && steps.install.outcome == 'success' }}
         env:
           OAI_GITHUB_TOKEN: ${{ secrets.OAI_KNOWLEDGE_TOKEN }}
         run: |
@@ -83,4 +119,30 @@ jobs:
             oai publish knowledge --bundle "$bundle" --repo-path knowledge-repo
           else
             echo "No human-approved claim candidates. Skipping knowledge PR."
+          fi
+
+      - name: Summarize partial failures
+        if: always()
+        env:
+          GITHUB_RESULT: ${{ steps.github_discovery.outcome || 'skipped' }}
+          HN_RESULT: ${{ steps.hn_discovery.outcome || 'skipped' }}
+          RSS_RESULT: ${{ steps.rss_discovery.outcome || 'skipped' }}
+          DAILY_RESULT: ${{ steps.daily_report.outcome || 'skipped' }}
+          WEEKLY_RESULT: ${{ steps.weekly_report.outcome || 'skipped' }}
+          EVIDENCE_RESULT: ${{ steps.evidence_assessment.outcome || 'skipped' }}
+          CLAIMS_RESULT: ${{ steps.claim_queue.outcome || 'skipped' }}
+          CANDIDATES_RESULT: ${{ steps.knowledge_candidates.outcome || 'skipped' }}
+        run: |
+          failed=0
+          for source in GITHUB HN RSS DAILY WEEKLY EVIDENCE CLAIMS CANDIDATES; do
+            result="$(printenv "${source}_RESULT")"
+            echo "- ${source}: ${result}" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$result" = "failure" ]; then
+              echo "::warning::${source} step failed; other stages were allowed to continue."
+              failed=1
+            fi
+          done
+          if [ "$failed" -eq 1 ]; then
+            echo "One or more collection or analysis stages failed. Partial results were retained where possible."
+            exit 1
           fi
